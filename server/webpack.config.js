@@ -11,6 +11,14 @@ module.exports = {
                 loader: 'babel-loader',
 
                 options: {
+                    plugins: [
+                        [
+                            '@babel/plugin-transform-typescript',
+                            {
+                                allowDeclareFields: true,
+                            }
+                        ]
+                    ],
                     presets: [
                         '@babel/preset-typescript',
                         '@babel/preset-env',
@@ -28,8 +36,11 @@ module.exports = {
         libraryTarget: 'commonjs2'
     },
     externals: {
-        // 'uuid': 'commonjs uuid',
-        // 'express': 'commonjs express',
+        'uuid': 'commonjs uuid',
+        'ws': 'commonjs ws',
+
+        'http': 'commonjs http',
+        'path': 'commonjs path',
     },
     mode: 'production',
 };
