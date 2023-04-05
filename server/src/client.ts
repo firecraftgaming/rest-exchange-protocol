@@ -16,3 +16,7 @@ export class Client {
         this.manager.destroy(this.id);
     }
 }
+
+export class TypedClient<T> extends Client {
+    declare public data: T;
+}

@@ -11,16 +11,16 @@ should;
 
     private static routes: Route[] = [
         {
-            path: '/clients/$clientID',
+            path: '/clients/:clientID',
             method: Method.GET,
-            exec: () => {
+            handler: () => {
                 return 'Hello World';
             },
         },
         {
-            path: '/clients/$clientID',
+            path: '/clients/:clientID',
             method: Method.DELETE,
-            exec: () => {
+            handler: () => {
                 throw new WebError('Hello World', 400);
             },
         },

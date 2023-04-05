@@ -13,3 +13,9 @@ export class WebError extends Error {
         this.status = status;
     }
 }
+
+export class MiddlewareProhibitFurtherExecution extends Error {
+    constructor() {
+        super('Middleware prohibited further execution');
+    }
+}

@@ -7,6 +7,26 @@ export class Request {
         this.responder = responder;
     }
 
+    get raw() {
+        return this.getRaw();
+    }
+
+    get params() {
+        return this.getParams();
+    }
+
+    get query() {
+        return this.getQuery();
+    }
+
+    get data() {
+        return this.getData();
+    }
+
+    get client() {
+        return this.getClient();
+    }
+
     getRaw() {
         return this.responder.getRaw();
     }

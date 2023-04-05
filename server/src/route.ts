@@ -8,8 +8,8 @@ export enum Method {
 }
 
 export interface Route {
-    method: Method;
+    method: Method | string;
     path: string;
 
-    exec: (request: Request) => unknown;
+    handler: (request: Request) => unknown;
 }

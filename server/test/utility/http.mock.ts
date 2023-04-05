@@ -25,7 +25,9 @@ export class TestableRequest {
     }
     public send() {
         this._events.emit('data', this.body);
-        this._events.emit('end');
+        setTimeout(() => {
+            this._events.emit('end');
+        });
     }
 }
 

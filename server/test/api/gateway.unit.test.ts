@@ -19,9 +19,9 @@ should;
     @test 'test finding params 1'() {
         const url = '/clients/1234';
         const route: Route = {
-            path: '/clients/$clientID',
+            path: '/clients/:clientID',
             method: Method.GET,
-            exec: () => {},
+            handler: () => {},
         };
 
         const params = this.gateway['findParams'](url, route);
@@ -31,9 +31,9 @@ should;
     @test 'test finding params 2'() {
         const url = '/clients/1234';
         const route: Route = {
-            path: '/clients/$clientID/other',
+            path: '/clients/:clientID/other',
             method: Method.GET,
-            exec: () => {},
+            handler: () => {},
         };
 
         const params = this.gateway['findParams'](url, route);
@@ -43,9 +43,9 @@ should;
     @test 'test finding params 3'() {
         const url = '/clients/1234/other';
         const route: Route = {
-            path: '/clients/$clientID',
+            path: '/clients/:clientID',
             method: Method.GET,
-            exec: () => {},
+            handler: () => {},
         };
 
         const params = this.gateway['findParams'](url, route);
@@ -55,9 +55,9 @@ should;
     @test 'test finding params 4'() {
         const url = '/clients/1234/other';
         const route: Route = {
-            path: '/clients/$clientID/other',
+            path: '/clients/:clientID/other',
             method: Method.GET,
-            exec: () => {},
+            handler: () => {},
         };
 
         const params = this.gateway['findParams'](url, route);
@@ -67,9 +67,9 @@ should;
     @test 'test finding params 5'() {
         const url = '/clients/1234/other';
         const route: Route = {
-            path: '/clients/$clientID/$otherID',
+            path: '/clients/:clientID/:otherID',
             method: Method.GET,
-            exec: () => {},
+            handler: () => {},
         };
 
         const params = this.gateway['findParams'](url, route);
@@ -79,9 +79,9 @@ should;
     @test 'test finding params 6'() {
         const url = '/clients/1234/other/5678';
         const route: Route = {
-            path: '/clients/$clientID/other/$otherID',
+            path: '/clients/:clientID/other/:otherID',
             method: Method.GET,
-            exec: () => {},
+            handler: () => {},
         };
 
         const params = this.gateway['findParams'](url, route);
@@ -93,7 +93,7 @@ should;
         const route: Route = {
             path: '/clients/other',
             method: Method.GET,
-            exec: () => {},
+            handler: () => {},
         };
 
         const params = this.gateway['findParams'](url, route);
@@ -103,9 +103,9 @@ should;
     @test 'test finding params 8'() {
         const url = '/clients/1234/other/5678?test=1234';
         const route: Route = {
-            path: '/clients/$clientID/other/$otherID',
+            path: '/clients/:clientID/other/:otherID',
             method: Method.GET,
-            exec: () => {},
+            handler: () => {},
         };
 
         const params = this.gateway['findParams'](url, route);
@@ -128,70 +128,70 @@ should;
 @suite class ApiGatewayRouteFindUnitTests {
     private static routes: Route[] = [
         {
-            path: '/clients/$clientID',
+            path: '/clients/:clientID',
             method: Method.GET,
-            exec: () => {
+            handler: () => {
                 return 'Hello World';
             },
         },
         {
-            path: '/clients/$clientID/other',
+            path: '/clients/:clientID/other',
             method: Method.GET,
-            exec: () => {
+            handler: () => {
                 throw new Error('Hello World');
             },
         },
         {
-            path: '/clients/$clientID',
+            path: '/clients/:clientID',
             method: Method.DELETE,
-            exec: () => {
+            handler: () => {
                 throw new WebError('Hello World', 400);
             },
         },
         {
-            path: '/clients/$clientID',
+            path: '/clients/:clientID',
             method: Method.UPDATE,
-            exec: () => {},
+            handler: () => {},
         },
         {
-            path: '/clients/$clientID',
+            path: '/clients/:clientID',
             method: Method.ACTION,
-            exec: () => {},
+            handler: () => {},
         },
         {
-            path: '/clients/$clientID/other',
+            path: '/clients/:clientID/other',
             method: Method.UPDATE,
-            exec: () => {},
+            handler: () => {},
         },
         {
-            path: '/clients/$clientID/other',
+            path: '/clients/:clientID/other',
             method: Method.DELETE,
-            exec: () => {},
+            handler: () => {},
         },
         {
-            path: '/clients/$clientID/other',
+            path: '/clients/:clientID/other',
             method: Method.ACTION,
-            exec: () => {},
+            handler: () => {},
         },
         {
             path: '/clients/other',
             method: Method.GET,
-            exec: () => {},
+            handler: () => {},
         },
         {
             path: '/clients/abc',
             method: Method.DELETE,
-            exec: () => {},
+            handler: () => {},
         },
         {
-            path: '/clients/other/$otherID',
+            path: '/clients/other/:otherID',
             method: Method.GET,
-            exec: () => {},
+            handler: () => {},
         },
         {
-            path: '/clients/other/$otherID',
+            path: '/clients/other/:otherID',
             method: Method.GET,
-            exec: () => {},
+            handler: () => {},
         },
     ];
 
@@ -262,65 +262,65 @@ should;
 @suite class ApiGatewayExecuteUnitTests {
     private static routes: Route[] = [
         {
-            path: '/clients/$clientID',
+            path: '/clients/:clientID',
             method: Method.GET,
-            exec: () => {
+            handler: () => {
                 return 'Hello World';
             },
         },
         {
-            path: '/clients/$clientID/other',
+            path: '/clients/:clientID/other',
             method: Method.GET,
-            exec: () => {
+            handler: () => {
                 throw new Error('Hello World');
             },
         },
         {
-            path: '/clients/$clientID',
+            path: '/clients/:clientID',
             method: Method.DELETE,
-            exec: () => {
+            handler: () => {
                 throw new WebError('Hello World', 400);
             },
         },
         {
-            path: '/clients/$clientID',
+            path: '/clients/:clientID',
             method: Method.UPDATE,
-            exec: () => {},
+            handler: () => {},
         },
         {
-            path: '/clients/$clientID',
+            path: '/clients/:clientID',
             method: Method.ACTION,
-            exec: () => {},
+            handler: () => {},
         },
         {
-            path: '/clients/$clientID/other',
+            path: '/clients/:clientID/other',
             method: Method.UPDATE,
-            exec: () => {},
+            handler: () => {},
         },
         {
-            path: '/clients/$clientID/other',
+            path: '/clients/:clientID/other',
             method: Method.DELETE,
-            exec: () => {},
+            handler: () => {},
         },
         {
-            path: '/clients/$clientID/other',
+            path: '/clients/:clientID/other',
             method: Method.ACTION,
-            exec: () => {},
+            handler: () => {},
         },
         {
             path: '/clients/other',
             method: Method.GET,
-            exec: () => {},
+            handler: () => {},
         },
         {
             path: '/clients/abc',
             method: Method.DELETE,
-            exec: () => {},
+            handler: () => {},
         },
         {
-            path: '/clients/other/$otherID',
+            path: '/clients/other/:otherID',
             method: Method.GET,
-            exec: () => {},
+            handler: () => {},
         },
     ];
 
@@ -428,9 +428,9 @@ should;
     }
     @test async 'test register route 1'() {
         const route = {
-            path: '/clients/other/$otherID',
+            path: '/clients/other/:otherID',
             method: Method.GET,
-            exec: () => {},
+            handler: () => {},
         };
 
         this.gateway.register(route);

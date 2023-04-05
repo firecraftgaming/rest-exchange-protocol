@@ -1,6 +1,6 @@
 import * as http from 'http';
 import {IncomingMessage, ServerResponse} from 'http';
-import {WebError} from '../error';
+import {MiddlewareProhibitFurtherExecution, WebError} from '../error';
 import {Method} from '../route';
 import {HTTPResponder} from './responder';
 import {Gateway} from '../gateway';
@@ -56,7 +56,24 @@ export class HTTPServer {
     }
 
     private async onRequest(request: IncomingMessage, response: ServerResponse) {
-        // TODO: run middleware
+        try {
+            await this.repServer['executeMiddleWare']({
+                type: 'http',
+
+                request,
+                response,
+            });
+        } catch (e) {
+            if (e instanceof MiddlewareProhibitFurtherExecution) return;
+            if (!(e instanceof WebError)) e = new WebError('Internal Server Error');
+
+            response.writeHead(e.status, {'Content-Type': 'text/json'});
+            response.write(JSON.stringify({
+                error: e.type,
+            }));
+            response.end();
+            return;
+        }
 
         const {method, url} = request;
         if (method === 'OPTIONS') return;

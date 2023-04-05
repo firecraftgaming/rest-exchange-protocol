@@ -3,10 +3,59 @@ import {HTTPServer} from './http/server';
 import {Gateway} from './gateway';
 import {Route} from './route';
 import {ClientManager} from './clients';
+import {Client} from './client';
+import {Request, Responder} from './responder';
+import http from 'http';
+import {WebsocketClient} from './ws/client';
 
 export interface REPServerConfig {
     port: number;
 }
+
+export interface WebsocketConnectMiddleWareData {
+    type: 'websocket-connect';
+
+    client: WebsocketClient;
+    request: http.IncomingMessage;
+};
+
+export interface WebsocketMessageMiddleWareData {
+    type: 'websocket-message';
+
+    client: WebsocketClient;
+    data: any;
+}
+
+export interface WebsocketCloseMiddleWareData {
+    type: 'websocket-close';
+
+    client: WebsocketClient;
+}
+
+export interface HTTPMiddleWareData {
+    type: 'http';
+
+    request: http.IncomingMessage;
+    response: http.ServerResponse;
+}
+
+export interface PreRouteMiddleWareData {
+    type: 'pre-route';
+
+    route: Route;
+    responder: Responder;
+}
+
+export type MiddleWareData =
+    WebsocketConnectMiddleWareData |
+    WebsocketMessageMiddleWareData |
+    WebsocketCloseMiddleWareData |
+    HTTPMiddleWareData |
+    PreRouteMiddleWareData;
+export type BasicMiddleware = (data: MiddleWareData) => void;
+export type PromiseMiddleware = (data: MiddleWareData) => Promise<void>;
+
+export type Middleware = BasicMiddleware | PromiseMiddleware;
 
 export class REPServer {
     private readonly httpServer: HTTPServer;
@@ -16,8 +65,10 @@ export class REPServer {
     private readonly gateway: Gateway;
     private readonly clients: ClientManager;
 
-    constructor(config: REPServerConfig) {
-        this.config = config;
+    private middlewares: Middleware[] = [];
+
+    constructor(config?: REPServerConfig) {
+        this.config = config || {} as REPServerConfig;
 
         this.clients = new ClientManager();
         this.gateway = new Gateway(this);
@@ -38,5 +89,56 @@ export class REPServer {
     stop() {
         this.httpServer.stop();
         this.wsServer.stop();
+    }
+
+    use(middleware: Middleware) {
+        this.middlewares.push(middleware);
+    }
+
+    private async executeMiddleWare(data: MiddleWareData) {
+        for (const middleware of this.middlewares)
+            await middleware(data);
+    }
+
+    // Below are shortcuts for registering routes
+
+    get(path: string, handler: (request: Request) => void) {
+        this.registerRoute({
+            method: 'GET',
+            path,
+            handler,
+        });
+    }
+
+    create(path: string, handler: (request: Request) => void) {
+        this.registerRoute({
+            method: 'CREATE',
+            path,
+            handler,
+        });
+    }
+
+    delete(path: string, handler: (request: Request) => void) {
+        this.registerRoute({
+            method: 'DELETE',
+            path,
+            handler,
+        });
+    }
+
+    update(path: string, handler: (request: Request) => void) {
+        this.registerRoute({
+            method: 'UPDATE',
+            path,
+            handler,
+        });
+    }
+
+    action(path: string, handler: (request: Request) => void) {
+        this.registerRoute({
+            method: 'ACTION',
+            path,
+            handler,
+        });
     }
 }

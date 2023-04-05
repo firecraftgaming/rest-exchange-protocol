@@ -1,6 +1,6 @@
 import {Method, Route} from './route';
 import {Responder, Request} from './responder';
-import {WebError} from './error';
+import {MiddlewareProhibitFurtherExecution, WebError} from './error';
 import {REPServer} from './server';
 
 export class Gateway {
@@ -27,8 +27,22 @@ export class Gateway {
         responder.setQuery(this.findQuery(url));
 
         try {
-            // TODO: run middleware
-            const result = await route.exec(new Request(responder));
+            await this.server['executeMiddleWare']({
+                type: 'pre-route',
+
+                route,
+                responder,
+            });
+        } catch (e) {
+            if (e instanceof MiddlewareProhibitFurtherExecution) return;
+            if (!(e instanceof WebError))
+                e = new WebError('Internal Server Error');
+            responder.error(e);
+            return;
+        }
+
+        try {
+            const result = await route.handler(new Request(responder));
             responder.respond(result);
         } catch (e) {
             if (!(e instanceof WebError))
@@ -55,7 +69,7 @@ export class Gateway {
                 const routePart = routeParts[i];
                 if (!routePart) continue;
 
-                if (routePart.startsWith('$')) newRoutesParams.push([routeParts, route]);
+                if (routePart.startsWith(':')) newRoutesParams.push([routeParts, route]);
                 else if (urlPart === routePart) newRoutes.push([routeParts, route]);
             }
 
@@ -77,7 +91,7 @@ export class Gateway {
             const urlPart = urlParts[i];
             const routePart = routeParts[i];
 
-            if (routePart.startsWith('$')) params[routePart.substring(1)] = urlPart;
+            if (routePart.startsWith(':')) params[routePart.substring(1)] = urlPart;
             else if (urlPart !== routePart) return null;
         }
 

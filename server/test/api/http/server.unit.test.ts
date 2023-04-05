@@ -11,16 +11,16 @@ should;
 
     private static routes: Route[] = [
         {
-            path: '/clients/$clientID',
+            path: '/clients/:clientID',
             method: Method.GET,
-            exec: () => {
+            handler: () => {
                 return 'Hello World';
             },
         },
         {
-            path: '/clients/$clientID',
+            path: '/clients/:clientID',
             method: Method.CREATE,
-            exec: () => {
+            handler: () => {
                 throw new WebError('Hello World', 400);
             },
         },
@@ -40,7 +40,7 @@ should;
         this.server.stop();
     }
 
-    @test async 'test websocket server mock websocket'() {
+    @test async 'test http server mock websocket'() {
         const req = new TestableRequest('GET', '/clients/123');
         const res = new TestableResponse();
 
@@ -58,7 +58,7 @@ should;
         expect(JSON.parse(res.result)).to.deep.equal(result);
     }
 
-    @test async 'test websocket server mock websocket error'() {
+    @test async 'test http server mock websocket error'() {
         const req = new TestableRequest('PUT', '/clients/123');
         const res = new TestableResponse();
 

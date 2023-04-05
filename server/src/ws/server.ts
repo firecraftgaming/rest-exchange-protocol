@@ -2,7 +2,7 @@ import {WebsocketClient} from './client';
 import {WebSocket} from 'ws';
 import {HTTPServer} from '../http/server';
 import * as http from 'http';
-import {WebError} from '../error';
+import {MiddlewareProhibitFurtherExecution, WebError} from '../error';
 import {Method} from '../route';
 import {WebsocketRequest} from './request';
 import {WebsocketResponder} from './responder';
@@ -37,7 +37,7 @@ export class WebsocketServer {
         this.server.close();
     }
 
-    private onConnection(websocket: WebSocket, request: http.IncomingMessage) {
+    private async onConnection(websocket: WebSocket, request: http.IncomingMessage) {
         const client = new WebsocketClient(websocket, this.repServer['clients'], request);
         websocket.on('message', async (data: any) => {
             try {
@@ -70,13 +70,29 @@ export class WebsocketServer {
             this.onClose(client);
         });
 
-        // TODO: run middleware
+        try {
+            await this.repServer['executeMiddleWare']({
+                type: 'websocket-connect',
+
+                client,
+                request,
+            });
+        } catch (e) {}
     }
 
     private async onMessage(data: any, websocket: WebsocketClient) {
         if (data.toString() === 'PING') return websocket.websocket.send('PONG');
 
-        // TODO: run middleware
+        try {
+            await this.repServer['executeMiddleWare']({
+                type: 'websocket-message',
+
+                client: websocket,
+                data,
+            });
+        } catch (e) {
+            if (e instanceof MiddlewareProhibitFurtherExecution) return;
+        }
 
         const message = JSON.parse(data);
         if (!message.method) throw new WebError('Missing method', 400);
@@ -98,8 +114,14 @@ export class WebsocketServer {
         await this.gateway.execute(data.target, data.method.toUpperCase() as Method, responder);
     }
 
-    private onClose(websocket: WebsocketClient) {
-        // TODO: run middleware
+    private async onClose(websocket: WebsocketClient) {
+        try {
+            await this.repServer['executeMiddleWare']({
+                type: 'websocket-close',
+                client: websocket,
+            });
+        } catch (e) {}
+
         websocket.destroy();
     }
 }
