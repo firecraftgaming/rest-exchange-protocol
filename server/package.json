@@ -1,6 +1,6 @@
 {
   "name": "rest-exchange-protocol",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": "https://github.com/firecraftgaming/rest-exchange-protocol.git",
@@ -9,8 +9,8 @@
   "files": [
     "dist",
     "package.json",
-    "../LICENSE",
-    "../README.md"
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "build": "webpack && tsc --emitDeclarationOnly",
