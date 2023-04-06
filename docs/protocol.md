@@ -49,8 +49,7 @@ The `data` property is an **optional** property and can have any type.
 
 ### Request property
 
-The `req` property is an **optional** property that if set should contain a **unique** key of any sort preferably a 
-**UUID**. 
+The `req` property is an **optional** property that if set should contain a **unique** key of any sort such as a **UUID**. 
 
 ## Replies
 
