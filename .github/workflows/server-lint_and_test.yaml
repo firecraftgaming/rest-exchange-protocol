@@ -1,0 +1,35 @@
+name: server:lint_and_test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "server/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "server/**"
+
+jobs:
+  test:
+    name: lint-and-test-server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+      - name: Yarn cache
+        uses: actions/cache@v2
+        id: yarn-cache
+        with:
+          path: |
+            .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - run: cd server && yarn install
+      - run: cd server && yarn lint
+      - run: cd server && yarn test
+        id: test
