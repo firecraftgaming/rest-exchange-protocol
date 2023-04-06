@@ -1,0 +1,37 @@
+name: client_javascript:lint_and_test
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "clients/javascript/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "clients/javascript/**"
+
+jobs:
+  test:
+    name: lint-and-test-javascript-client
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '16.0.0'
+      - name: Yarn cache
+        uses: actions/cache@v2
+        id: yarn-cache
+        with:
+          path: |
+            .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - run: cd clients/javascript && yarn install
+      - run: cd clients/javascript && yarn lint
+      - run: cd clients/javascript && yarn test
+        id: test
