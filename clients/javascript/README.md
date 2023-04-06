@@ -1,4 +1,4 @@
-# REST Exchange Protocol
+# REST Exchange Protocol (REP) Javascript Client Library
 
 This is the javascript client library for the REST Exchange Protocol (REP) which is a protocol for exchanging data between a server and a client. It is based on the 
 REST architectural style and the HTTP protocol, but also the Websocket protocol. It is designed to be simple and 
