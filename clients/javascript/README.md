@@ -1,6 +1,6 @@
 # REST Exchange Protocol
 
-This is the host library for the REST Exchange Protocol (REP) which is a protocol for exchanging data between a server and a client. It is based on the 
+This is the javascript client library for the REST Exchange Protocol (REP) which is a protocol for exchanging data between a server and a client. It is based on the 
 REST architectural style and the HTTP protocol, but also the Websocket protocol. It is designed to be simple and 
 lightweight, and to be easy to implement. The unique thing that is the aim of this protocol is to provide an easy 
 way to create REST apis that works in parallel with websockets to provide a real-time communication between the 
