@@ -1,2 +1,2 @@
 export * from './server';
-export {WebError} from './error';
+export {WebError, MiddlewareProhibitFurtherExecution} from './error';

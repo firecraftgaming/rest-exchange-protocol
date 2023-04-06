@@ -1,24 +1,71 @@
 import WebSocket from 'isomorphic-ws';
 import axios from 'axios';
+import {Method, Route} from './route';
+import {Gateway} from './gateway';
+import {Routes} from './routes';
+import {Request} from './request';
+import http from 'http';
 
 export type Transport = 'http' | 'ws' | 'both';
 
-export interface ClientOptions {
-    host: string;
 
-    transport: Transport;
-    secure: boolean;
+export interface WebsocketMessageMiddleWareData {
+    type: 'websocket-message';
+
+    data: any;
 }
 
-export class Client {
-    private options: ClientOptions;
+export interface PreRouteMiddleWareData {
+    type: 'pre-route';
+
+    route: Route;
+    request: Request;
+}
+
+export type MiddleWareData =
+    WebsocketMessageMiddleWareData |
+    PreRouteMiddleWareData;
+export type BasicMiddleware = (data: MiddleWareData) => void;
+export type PromiseMiddleware = (data: MiddleWareData) => Promise<void>;
+
+export type Middleware = BasicMiddleware | PromiseMiddleware;
+
+export interface REPClientOptions {
+    host: string;
+
+    transport?: Transport;
+    secure?: boolean;
+}
+
+export class REPClient {
+    private options: REPClientOptions = {
+        host: '',
+        transport: 'both',
+        secure: false,
+    };
     private socket: WebSocket;
     private connected_: boolean;
     private get connected() {
         return this.connected_;
     }
-    constructor(options: ClientOptions) {
-        this.options = options;
+    private middlewares: Middleware[] = [];
+
+    use(middleware: Middleware) {
+        this.middlewares.push(middleware);
+    }
+
+    private async executeMiddleWare(data: MiddleWareData) {
+        for (const middleware of this.middlewares)
+            await middleware(data);
+    }
+
+    private readonly gateway: Gateway;
+    public get routes() {
+        return new Routes(this.gateway);
+    }
+    constructor(options: REPClientOptions) {
+        Object.assign(this.options, options);
+        this.gateway = new Gateway(this);
 
         this.onOpen = this.onOpen.bind(this);
         this.onMessage = this.onMessage.bind(this);
@@ -54,8 +101,11 @@ export class Client {
         this.socket.on('close', this.onClose);
     }
 
-    private onMessage(event: MessageEvent) {
-        // TODO: Execute middlewares
+    private async onMessage(event: MessageEvent) {
+        await this.executeMiddleWare({
+            type: 'websocket-message',
+            data: event.data,
+        });
 
         try {
             const data = JSON.parse(event.data);
@@ -67,9 +117,11 @@ export class Client {
                         callback(data.data);
                     }
                 }
+
+                return;
             }
 
-            // TODO: Execute handlers
+            await this.gateway.execute(data.path, data.method, data.data, data.req);
         } catch (e) {
 
         }
@@ -92,13 +144,13 @@ export class Client {
         transport = transport || this.options.transport;
         method = method.toUpperCase();
 
-        if ([
-            'GET',
-            'CREATE',
-            'DELETE',
-            'UPDATE',
-            'ACTION',
-        ].includes(method)) throw new Error('Invalid method');
+        if (![
+            Method.GET,
+            Method.CREATE,
+            Method.DELETE,
+            Method.UPDATE,
+            Method.ACTION,
+        ].includes(method as Method)) throw new Error('Invalid method');
 
         if (transport === 'http') return this.requestHttp(path, method, data);
         if (transport === 'ws') return this.requestWs(path, method, data, call);

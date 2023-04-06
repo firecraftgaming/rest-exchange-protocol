@@ -77,7 +77,7 @@ export class REPServer {
         this.wsServer = new WebsocketServer(this.httpServer, this);
     }
 
-    registerRoute(route: Route) {
+    register(route: Route) {
         this.gateway.register(route);
     }
 
@@ -103,7 +103,7 @@ export class REPServer {
     // Below are shortcuts for registering routes
 
     get(path: string, handler: (request: Request) => void) {
-        this.registerRoute({
+        this.register({
             method: 'GET',
             path,
             handler,
@@ -111,7 +111,7 @@ export class REPServer {
     }
 
     create(path: string, handler: (request: Request) => void) {
-        this.registerRoute({
+        this.register({
             method: 'CREATE',
             path,
             handler,
@@ -119,7 +119,7 @@ export class REPServer {
     }
 
     delete(path: string, handler: (request: Request) => void) {
-        this.registerRoute({
+        this.register({
             method: 'DELETE',
             path,
             handler,
@@ -127,7 +127,7 @@ export class REPServer {
     }
 
     update(path: string, handler: (request: Request) => void) {
-        this.registerRoute({
+        this.register({
             method: 'UPDATE',
             path,
             handler,
@@ -135,7 +135,7 @@ export class REPServer {
     }
 
     action(path: string, handler: (request: Request) => void) {
-        this.registerRoute({
+        this.register({
             method: 'ACTION',
             path,
             handler,
