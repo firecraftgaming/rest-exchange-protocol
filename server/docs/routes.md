@@ -1,5 +1,5 @@
 # Routes
-Routes are the way to define the URL structure of your application. One route handles a certain action on a certain URL. The route can be a static route, such as `/`, or a dynamic route, such as `/user/:id`. The route can also be a regular expression, such as `/user/[0-9]+`. They are specific to the HTTP method, so a route for `GET` is not the same as a route for `POST`, but the same handler can be used for multiple routes, giving the same effect.
+Routes are the way to define the URL structure of your application. One route handles a certain action on a certain URL. The route can be a static route, such as `/`, or a dynamic route, such as `/user/:id`. They are specific to the HTTP method, so a route for `GET` is not the same as a route for `POST`, but the same handler can be used for multiple routes, giving the same effect.
 
 Use register a route like this:
 
