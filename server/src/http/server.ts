@@ -6,6 +6,7 @@ import {HTTPResponder} from './responder';
 import {Gateway} from '../gateway';
 import {EventEmitter} from 'events';
 import {REPServer} from '../server';
+import {HTTPClient} from './client';
 
 export const HTTPTranslation = {
     'GET': Method.GET,
@@ -56,9 +57,13 @@ export class HTTPServer {
     }
 
     private async onRequest(request: IncomingMessage, response: ServerResponse) {
+        const client = new HTTPClient();
+
         try {
             await this.repServer['executeMiddleWare']({
                 type: 'http',
+
+                client,
 
                 request,
                 response,
@@ -91,7 +96,7 @@ export class HTTPServer {
         }
 
         const body = await this.parseBody(request);
-        const responder = new HTTPResponder(body, response, request);
+        const responder = new HTTPResponder(body, client, response, request);
         await this.gateway.execute(url, HTTPTranslation[method.toUpperCase()], responder);
     }
 

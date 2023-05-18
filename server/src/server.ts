@@ -7,6 +7,7 @@ import {Client} from './client';
 import {Request, Responder} from './responder';
 import http from 'http';
 import {WebsocketClient} from './ws/client';
+import {HTTPClient} from './http/client';
 
 export interface REPServerConfig {
     port: number;
@@ -34,6 +35,8 @@ export interface WebsocketCloseMiddleWareData {
 
 export interface HTTPMiddleWareData {
     type: 'http';
+
+    client: HTTPClient;
 
     request: http.IncomingMessage;
     response: http.ServerResponse;

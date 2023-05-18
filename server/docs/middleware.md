@@ -39,6 +39,7 @@ The websocket close data object has the following properties:
 ### HTTP
 The HTTP data object has the following properties:
 - `type`: `http`
+- `client`: The HTTP client object
 - `request`: The HTTP request object (from the `http` package, a `http.IncomingMessage`)
 - `response`: The HTTP response object (from the `http` package, a `http.ServerResponse`)
 
@@ -74,6 +75,7 @@ app.use((data) => {
         case 'http':
             // do something with the HTTP request
             
+            // data.client is the HTTP client object
             // data.request is the HTTP request object
             // data.response is the HTTP response object
             break;
