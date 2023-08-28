@@ -3,7 +3,6 @@ import {HTTPServer} from './http/server';
 import {Gateway} from './gateway';
 import {Route} from './route';
 import {ClientManager} from './clients';
-import {Client} from './client';
 import {Request, Responder} from './responder';
 import http from 'http';
 import {WebsocketClient} from './ws/client';

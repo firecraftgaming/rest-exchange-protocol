@@ -9,14 +9,12 @@ import {WebsocketResponder} from './responder';
 import {Gateway} from '../gateway';
 import {REPServer} from '../server';
 
-export enum WebsocketOutboundMethod {
-    DATA = 'DATA',
-    CREATE = 'CREATE',
-    DELETE = 'DELETE',
-    UPDATE = 'UPDATE',
-    ACTION = 'ACTION',
-    REPLY = 'REPLY',
-}
+export const WebsocketOutboundMethod = {
+    ...Method,
+    REPLY: 'REPLY',
+} as const;
+
+export type WebsocketOutboundMethod = typeof WebsocketOutboundMethod[keyof typeof WebsocketOutboundMethod];
 
 export class WebsocketServer {
     private readonly server: any;
