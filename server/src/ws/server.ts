@@ -52,7 +52,7 @@ export class WebsocketServer {
 
                 if (!(e instanceof WebError)) e = new WebError('Internal Server Error');
 
-                client.send(
+                client.reply(
                     'error',
                     WebsocketOutboundMethod.REPLY,
                     {
@@ -98,6 +98,13 @@ export class WebsocketServer {
         if (!message.method) throw new WebError('Missing method', 400);
         if (!message.target) throw new WebError('Missing target', 400);
 
+        if (message.method === WebsocketOutboundMethod.REPLY) {
+            if (!message.req) throw new WebError('Missing request id', 400);
+
+            websocket['resolveRequest'](message.req, message.data);
+            return;
+        }
+
         if (![
             Method.GET,
             Method.CREATE,
@@ -122,6 +129,6 @@ export class WebsocketServer {
             });
         } catch (e) {}
 
-        websocket.destroy();
+        websocket['destroy']();
     }
 }

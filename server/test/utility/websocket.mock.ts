@@ -19,7 +19,7 @@ export class TestableWebsocketClient extends WebsocketClient {
         super(null, new ClientManager(), null);
     }
 
-    public send(target: string | null, method: WebsocketOutboundMethod, data: unknown, req: string | null) {
+    public reply(target: string | null, method: WebsocketOutboundMethod, data: unknown, req: string | null) {
         this.result = {
             target,
             method,

@@ -17,6 +17,8 @@ export class HTTPResponder extends Responder {
             data,
         }));
         this.response.end();
+
+        this['client']['destroy']();
     }
     error(error: WebError) {
         this.response.writeHead(error.status, {'Content-Type': 'text/json'});
@@ -24,5 +26,7 @@ export class HTTPResponder extends Responder {
             error: error.type,
         }));
         this.response.end();
+
+        this['client']['destroy']();
     }
 }

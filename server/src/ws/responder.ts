@@ -15,7 +15,7 @@ export class WebsocketResponder extends Responder {
 
     respond(data: unknown) {
         if (this.req === null) return;
-        this.websocket.send(
+        this.websocket.reply(
             '',
             WebsocketOutboundMethod.REPLY,
 
@@ -28,7 +28,7 @@ export class WebsocketResponder extends Responder {
         );
     }
     error(error: WebError) {
-        this.websocket.send(
+        this.websocket.reply(
             'error',
             WebsocketOutboundMethod.REPLY,
 

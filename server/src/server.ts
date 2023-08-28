@@ -80,6 +80,14 @@ export class REPServer {
         this.wsServer = new WebsocketServer(this.httpServer, this);
     }
 
+    public getClient(id: string) {
+        return this.clients.get(id);
+    }
+
+    public getClients() {
+        return this.clients.getAll();
+    }
+
     register(route: Route) {
         this.gateway.register(route);
     }

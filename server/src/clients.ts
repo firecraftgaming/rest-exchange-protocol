@@ -14,4 +14,12 @@ export class ClientManager {
     public add(client: Client) {
         this.clients.set(client.id, client);
     }
+
+    public getAll() {
+        return Array.from(this.clients.values());
+    }
+
+    public get size() {
+        return this.clients.size;
+    }
 }

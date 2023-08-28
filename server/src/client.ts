@@ -5,14 +5,14 @@ export class Client {
     public readonly id: string;
     public data: any; // This is for the developer that uses this library to store whatever they want, like a user object or current authentication state
 
-    private readonly manager: ClientManager;
+    protected readonly manager: ClientManager;
     constructor(manager?: ClientManager) {
         this.id = v4();
         this.manager = manager;
         if (manager) manager.add(this);
     }
 
-    destroy() {
+    protected destroy() {
         if (!this.manager) return;
         this.manager.destroy(this.id);
     }
