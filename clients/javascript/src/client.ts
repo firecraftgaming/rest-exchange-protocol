@@ -8,6 +8,14 @@ import http from 'http';
 
 export type Transport = 'http' | 'ws' | 'both';
 
+export const HTTPTranslation = {
+    [Method.GET]: 'GET',
+    [Method.CREATE]: 'PUT',
+    [Method.DELETE]: 'DELETE',
+    [Method.UPDATE]: 'PATCH',
+    [Method.ACTION]: 'POST',
+};
+
 
 export interface WebsocketMessageMiddleWareData {
     type: 'websocket-message';
@@ -78,14 +86,14 @@ export class REPClient {
 
         const protocol = this.options.secure ? 'wss' : 'ws';
         this.socket = new WebSocket(`${protocol}://${this.options.host}`);
-        this.socket.on('open', this.onOpen);
+        this.socket.addEventListener('open', this.onOpen);
     }
 
     public disconnect() {
-        this.socket.off('open', this.onOpen);
-        this.socket.off('message', this.onMessage);
-        this.socket.off('error', this.onError);
-        this.socket.off('close', this.onClose);
+        this.socket.removeEventListener('open', this.onOpen);
+        this.socket.removeEventListener('message', this.onMessage);
+        this.socket.removeEventListener('error', this.onError);
+        this.socket.removeEventListener('close', this.onClose);
 
         this.socket.close();
         this.socket = null;
@@ -96,9 +104,9 @@ export class REPClient {
     private onOpen() {
         this.connected_ = true;
 
-        this.socket.on('message', this.onMessage);
-        this.socket.on('error', this.onError);
-        this.socket.on('close', this.onClose);
+        this.socket.addEventListener('message', this.onMessage);
+        this.socket.addEventListener('error', this.onError);
+        this.socket.addEventListener('close', this.onClose);
     }
 
     private async onMessage(event: MessageEvent) {
@@ -121,7 +129,7 @@ export class REPClient {
                 return;
             }
 
-            await this.gateway.execute(data.path, data.method, data.data, data.req);
+            await this.gateway.execute(data.target, data.method, data.data, data.req);
         } catch (e) {
 
         }
@@ -160,6 +168,8 @@ export class REPClient {
     }
 
     private async requestHttp(path: string, method: string, data: any) {
+        const httpMethod = HTTPTranslation[method as Method];
+
         path = path.startsWith('/') ? path : `/${path}`;
 
         const protocol = this.options.secure ? 'https' : 'http';
@@ -170,7 +180,7 @@ export class REPClient {
                 'Content-Type': 'application/json',
             },
 
-            method,
+            method: httpMethod,
             data: JSON.stringify(data),
         });
 
