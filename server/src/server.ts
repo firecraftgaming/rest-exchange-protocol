@@ -12,6 +12,14 @@ export interface REPServerConfig {
     port: number;
 }
 
+export interface WebsocketUpgradeMiddleWareData {
+    type: 'websocket-upgrade';
+
+    request: http.IncomingMessage;
+    socket: any;
+    head: any;
+}
+
 export interface WebsocketConnectMiddleWareData {
     type: 'websocket-connect';
 
@@ -49,6 +57,7 @@ export interface PreRouteMiddleWareData {
 }
 
 export type MiddleWareData =
+    WebsocketUpgradeMiddleWareData |
     WebsocketConnectMiddleWareData |
     WebsocketMessageMiddleWareData |
     WebsocketCloseMiddleWareData |
@@ -75,8 +84,8 @@ export class REPServer {
         this.clients = new ClientManager();
         this.gateway = new Gateway(this);
 
-        this.httpServer = new HTTPServer(config.port, this);
-        this.wsServer = new WebsocketServer(this.httpServer, this);
+        this.wsServer = new WebsocketServer(this);
+        this.httpServer = new HTTPServer(config.port, this.wsServer, this);
     }
 
     public getClient(id: string) {

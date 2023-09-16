@@ -7,6 +7,8 @@ import {Gateway} from '../gateway';
 import {EventEmitter} from 'events';
 import {REPServer} from '../server';
 import {HTTPClient} from './client';
+import {WebsocketClient} from '../ws/client';
+import {WebsocketServer} from '../ws/server';
 
 export const HTTPTranslation = {
     'GET': Method.GET,
@@ -18,12 +20,14 @@ export const HTTPTranslation = {
 
 export class HTTPServer {
     private readonly server: http.Server;
+    private readonly websocket: WebsocketServer;
     private readonly port: number;
     private readonly eventEmitter: EventEmitter;
     private readonly gateway: Gateway;
     private readonly repServer: REPServer;
-    constructor(port = 5000, server: REPServer) {
+    constructor(port = 5000, websocket: WebsocketServer, server: REPServer) {
         this.repServer = server;
+        this.websocket = websocket;
         this.gateway = server['gateway'];
 
         this.port = port;
@@ -33,6 +37,27 @@ export class HTTPServer {
 
         this.server.on('error', (e: any) => {
             this.eventEmitter.emit('error', e);
+        });
+
+        this.server.on('upgrade', async (req: IncomingMessage, socket, head) => {
+            try {
+                await this.repServer['executeMiddleWare']({
+                    type: 'websocket-upgrade',
+
+                    request: req,
+                    socket,
+                    head,
+                });
+            } catch (e) {
+                if (e instanceof MiddlewareProhibitFurtherExecution) return;
+                if (!(e instanceof WebError)) e = new WebError('Internal Server Error');
+
+                socket.write(`HTTP/1.1 ${e.status} ${e.type}\r\n\r\n`);
+                socket.destroy();
+                return;
+            }
+
+            this.websocket.handleRequest(socket, req, head);
         });
     }
 

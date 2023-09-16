@@ -1,6 +1,5 @@
 import {WebsocketClient} from './client';
 import {WebSocket} from 'ws';
-import {HTTPServer} from '../http/server';
 import * as http from 'http';
 import {MiddlewareProhibitFurtherExecution, WebError} from '../error';
 import {Method} from '../route';
@@ -20,19 +19,23 @@ export class WebsocketServer {
     private readonly server: any;
     private readonly gateway: Gateway;
     private readonly repServer: REPServer;
-    constructor(server: HTTPServer, repServer: REPServer) {
+    constructor(repServer: REPServer) {
         this.repServer = repServer;
         this.gateway = this.repServer['gateway'];
 
         this.server = new WebSocket.Server({
-            server: server['server'],
+            noServer: true,
         });
-
-        this.server.on('connection', this.onConnection.bind(this));
     }
 
     stop() {
         this.server.close();
+    }
+
+    public handleRequest(socket: WebSocket, request: http.IncomingMessage, head: Buffer) {
+        this.server.handleUpgrade(request, socket, head, (ws: WebSocket) => {
+            this.onConnection(ws, request);
+        });
     }
 
     private async onConnection(websocket: WebSocket, request: http.IncomingMessage) {
