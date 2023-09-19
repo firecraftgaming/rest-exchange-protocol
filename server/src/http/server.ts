@@ -7,7 +7,6 @@ import {Gateway} from '../gateway';
 import {EventEmitter} from 'events';
 import {REPServer} from '../server';
 import {HTTPClient} from './client';
-import {WebsocketClient} from '../ws/client';
 import {WebsocketServer} from '../ws/server';
 
 export const HTTPTranslation = {

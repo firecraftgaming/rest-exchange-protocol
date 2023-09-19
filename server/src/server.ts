@@ -38,6 +38,7 @@ export interface WebsocketCloseMiddleWareData {
     type: 'websocket-close';
 
     client: WebsocketClient;
+    error?: Error;
 }
 
 export interface HTTPMiddleWareData {

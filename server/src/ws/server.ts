@@ -26,6 +26,10 @@ export class WebsocketServer {
         this.server = new WebSocket.Server({
             noServer: true,
         });
+
+        this.server.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
+            this.onConnection(ws, req);
+        });
     }
 
     stop() {
@@ -34,7 +38,7 @@ export class WebsocketServer {
 
     public handleRequest(socket: WebSocket, request: http.IncomingMessage, head: Buffer) {
         this.server.handleUpgrade(request, socket, head, (ws: WebSocket) => {
-            this.onConnection(ws, request);
+            this.server.emit('connection', ws, request);
         });
     }
 
@@ -65,7 +69,7 @@ export class WebsocketServer {
             }
         });
         websocket.on('error', e => {
-            this.onClose(client);
+            this.onClose(client, e);
         });
         websocket.on('close', () => {
             this.onClose(client);
@@ -122,11 +126,13 @@ export class WebsocketServer {
         await this.gateway.execute(data.target, data.method.toUpperCase() as Method, responder);
     }
 
-    private async onClose(websocket: WebsocketClient) {
+    private async onClose(websocket: WebsocketClient, error?: Error) {
         try {
             await this.repServer['executeMiddleWare']({
                 type: 'websocket-close',
                 client: websocket,
+
+                error,
             });
         } catch (e) {}
 
