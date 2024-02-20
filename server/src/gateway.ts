@@ -65,7 +65,7 @@ export class Gateway {
             let newRoutes: [string[], Route][] = [];
 
             const urlPart = urlParts[i];
-            for (const [routeParts, route] of routes) {
+            for (const [routeParts, route] of matchingRoutes) {
                 const routePart = routeParts[i];
                 if (!routePart) continue;
 
