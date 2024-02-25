@@ -101,6 +101,10 @@ export class REPServer {
         this.gateway.register(route);
     }
 
+    unregister(route: Route | Route['handler']) {
+        this.gateway.unregister(route);
+    }
+
     async start() {
         await this.httpServer.start();
         return this;

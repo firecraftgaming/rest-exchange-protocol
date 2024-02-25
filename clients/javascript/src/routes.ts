@@ -12,6 +12,10 @@ export class Routes {
         this.gateway.register(route);
     }
 
+    public unregister(route: Route | Route['handler']) {
+        this.gateway.unregister(route);
+    }
+
     // Below are shortcuts for registering routes
 
     get(path: string, handler: (request: Request) => void) {

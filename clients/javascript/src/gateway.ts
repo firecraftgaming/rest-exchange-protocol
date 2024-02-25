@@ -9,6 +9,10 @@ export class Gateway {
         this.routes.push(route);
     }
 
+    unregister(route: Route | Route['handler']) {
+        this.routes = this.routes.filter((r) => r !== route && r.handler !== route);
+    }
+
     private readonly client: REPClient;
 
     constructor(client: REPClient) {
