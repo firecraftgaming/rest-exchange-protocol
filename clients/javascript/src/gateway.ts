@@ -85,7 +85,7 @@ export class Gateway {
         const urlParts = this.getPath(url).split('/');
         const routes = this.routes
             .filter((route) => route.method === method)
-            .map((route) => [route.path.split('/'), route] as [string[], Route])
+            .map((route) => [route.path.split('/').slice(1), route] as [string[], Route])
             .filter(([routeParts]) => routeParts.length === urlParts.length); // filter out routes with different section lengths and different methods
         if (routes.length === 0) return null;
 
