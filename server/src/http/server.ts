@@ -21,15 +21,20 @@ export class HTTPServer {
     private readonly server: http.Server;
     private readonly websocket: WebsocketServer;
     private readonly port: number;
+    private readonly host: string | undefined;
+    private readonly path: string | undefined;
     private readonly eventEmitter: EventEmitter;
     private readonly gateway: Gateway;
     private readonly repServer: REPServer;
-    constructor(port = 5000, websocket: WebsocketServer, server: REPServer) {
+    constructor({port, host, path}: {port?: number; host?: string; path?: string} = {}, websocket: WebsocketServer, server: REPServer) {
         this.repServer = server;
         this.websocket = websocket;
         this.gateway = server['gateway'];
 
-        this.port = port;
+        this.port = port ?? 5000;
+        this.host = host;
+        this.path = path;
+        this.eventEmitter = new EventEmitter();
         this.server = http.createServer((request: IncomingMessage, response: ServerResponse) => {
             this.onRequest(request, response);
         });
@@ -61,8 +66,13 @@ export class HTTPServer {
     }
 
     start() {
-        return new Promise<void>((resolve, _reject) => {
-            this.server.listen(this.port, () => {
+        return new Promise<void>((resolve, reject) => {
+            const opts = this.path
+                ? { path: this.path }
+                : { port: this.port, host: this.host };
+            this.server.once('error', reject);
+            this.server.listen(opts, () => {
+                this.server.off('error', reject);
                 resolve();
             });
         });

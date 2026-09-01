@@ -9,7 +9,9 @@ import {WebsocketClient} from './ws/client';
 import {HTTPClient} from './http/client';
 
 export interface REPServerConfig {
-    port: number;
+    port?: number;
+    host?: string;
+    path?: string;
 }
 
 export interface WebsocketUpgradeMiddleWareData {
@@ -86,7 +88,7 @@ export class REPServer {
         this.gateway = new Gateway(this);
 
         this.wsServer = new WebsocketServer(this);
-        this.httpServer = new HTTPServer(config.port, this.wsServer, this);
+        this.httpServer = new HTTPServer(this.config, this.wsServer, this);
     }
 
     public getClient(id: string) {
