@@ -20,7 +20,10 @@ export class Gateway {
     }
 
     private sendError(req: string, status: number, error: string, target: string = 'error') {
-        this.client['socket'].send(JSON.stringify({
+        const socket = this.client['socket'];
+        if (!socket || socket.readyState !== socket.OPEN) return;
+
+        socket.send(JSON.stringify({
             target,
             method: 'REPLY',
 
@@ -34,7 +37,10 @@ export class Gateway {
     }
 
     private sendResult(req: string, data: unknown, target: string = '') {
-        this.client['socket'].send(JSON.stringify({
+        const socket = this.client['socket'];
+        if (!socket || socket.readyState !== socket.OPEN) return;
+
+        socket.send(JSON.stringify({
             target,
             method: 'REPLY',
 
@@ -48,8 +54,18 @@ export class Gateway {
     }
 
     async execute(url: string, method: Method, data: any, req?: string) {
+        if (!method) {
+            if (req) this.sendError(req, 400, 'Missing method', url);
+            return;
+        }
+
+        method = method.toUpperCase() as Method;
+
         const route = this.findRoute(url, method);
-        if (!route) return this.sendError(req, 404, 'Not Found', url);
+        if (!route) {
+            if (req) this.sendError(req, 404, 'Not Found', url);
+            return;
+        }
 
         const request = new Request(data);
         request.setParams(this.findParams(url, route)!);
@@ -67,17 +83,18 @@ export class Gateway {
             if (!(e instanceof WebError))
                 e = new WebError('Internal Server Error');
 
-            return this.sendError(req, e.status, e.type, url);
+            if (req) this.sendError(req, e.status, e.type, url);
+            return;
         }
 
         try {
             const result = await route.handler(request);
-            this.sendResult(req, result, url);
+            if (req) this.sendResult(req, result, url);
         } catch (e) {
             if (!(e instanceof WebError))
                 e = new WebError('Internal Server Error');
 
-            this.sendError(req, e.status, e.type, url);
+            if (req) this.sendError(req, e.status, e.type, url);
         }
     }
 

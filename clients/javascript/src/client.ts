@@ -1,10 +1,11 @@
 import WebSocket from 'isomorphic-ws';
 import axios from 'axios';
+import {v4} from 'uuid';
 import {Method, Route} from './route';
 import {Gateway} from './gateway';
 import {Routes} from './routes';
 import {Request} from './request';
-import http from 'http';
+import {MiddlewareProhibitFurtherExecution, WebError} from './error';
 
 export type Transport = 'http' | 'ws' | 'both';
 
@@ -90,15 +91,10 @@ export class REPClient {
     }
 
     public disconnect() {
-        this.socket.removeEventListener('open', this.onOpen);
-        this.socket.removeEventListener('message', this.onMessage);
-        this.socket.removeEventListener('error', this.onError);
-        this.socket.removeEventListener('close', this.onClose);
+        if (!this.socket) return;
 
         this.socket.close();
-        this.socket = null;
-
-        this.connected_ = false;
+        this.teardownSocket();
     }
 
     private onOpen() {
@@ -110,29 +106,35 @@ export class REPClient {
     }
 
     private async onMessage(event: MessageEvent) {
-        await this.executeMiddleWare({
-            type: 'websocket-message',
-            data: event.data,
-        });
-
         try {
+            await this.executeMiddleWare({
+                type: 'websocket-message',
+                data: event.data,
+            });
+
             const data = JSON.parse(event.data);
             if (data.method === 'REPLY') {
-                if (data.req) {
-                    const callback = this.requests.get(data.req);
-                    if (callback) {
-                        this.requests.delete(data.req);
-                        callback(data.data);
-                    }
-                }
-
+                this.handleReply(data.req, data.data);
                 return;
             }
 
             await this.gateway.execute(data.target, data.method, data.data, data.req);
         } catch (e) {
-
+            if (e instanceof MiddlewareProhibitFurtherExecution) return;
+            this.onError(e);
         }
+    }
+
+    private handleReply(req: string, envelope?: {status: number; data?: unknown; error?: string}) {
+        if (!req) return;
+
+        const pending = this.requests.get(req);
+        if (!pending) return;
+        this.requests.delete(req);
+
+        const status = envelope?.status ?? 500;
+        if (status < 400) pending.resolve(envelope?.data);
+        else pending.reject(new WebError(envelope?.error ?? 'Malformed reply', status));
     }
 
     private onError(error: Error) {
@@ -140,10 +142,28 @@ export class REPClient {
     }
 
     private onClose() {
-        this.connected_ = false;
+        this.teardownSocket();
     }
 
-    private requests: Map<string, (data: any) => void> = new Map();
+    private teardownSocket() {
+        this.socket?.removeEventListener('open', this.onOpen);
+        this.socket?.removeEventListener('message', this.onMessage);
+        this.socket?.removeEventListener('error', this.onError);
+        this.socket?.removeEventListener('close', this.onClose);
+        this.socket = null;
+
+        this.connected_ = false;
+        this.rejectPending(new WebError('Disconnected'));
+    }
+
+    private rejectPending(error: WebError) {
+        for (const {reject} of this.requests.values())
+            reject(error);
+
+        this.requests.clear();
+    }
+
+    private requests: Map<string, {resolve: (data: any) => void; reject: (error: WebError) => void}> = new Map();
 
     public request(path: string, method: string, data: any): Promise<any>;
     public request(path: string, method: string, data: any, transport: Transport): Promise<any>;
@@ -167,14 +187,13 @@ export class REPClient {
         return this.requestHttp(path, method, data);
     }
 
-    private async requestHttp(path: string, method: string, data: any) {
+    private requestHttp(path: string, method: string, data: any) {
         const httpMethod = HTTPTranslation[method as Method];
-
-        path = path.startsWith('/') ? path : `/${path}`;
+        const url = path.startsWith('/') ? path : `/${path}`;
 
         const protocol = this.options.secure ? 'https' : 'http';
-        const response = await axios.request({
-            url: `${protocol}://${this.options.host}${path}`,
+        return axios.request({
+            url: `${protocol}://${this.options.host}${url}`,
 
             headers: {
                 'Content-Type': 'application/json',
@@ -182,15 +201,18 @@ export class REPClient {
 
             method: httpMethod,
             data: JSON.stringify(data),
-        });
-
-        return response.data;
+        })
+            .then((response) => response.data.data)
+            .catch((error) => {
+                const body = error?.response?.data;
+                throw new WebError(body?.error ?? 'Internal Server Error', error?.response?.status ?? 500);
+            });
     }
     private async requestWs(path: string, method: string, data: any, call = true) {
         if (!this.connected) throw new Error('Not connected');
 
         let request;
-        if (call) request = Math.random().toString(36).substring(2);
+        if (call) request = v4();
 
         this.socket.send(JSON.stringify({
             target: path,
@@ -202,6 +224,6 @@ export class REPClient {
         }));
 
         if (call)
-            return await new Promise((resolve, _reject) => this.requests.set(request, resolve));
+            return await new Promise((resolve, reject) => this.requests.set(request, {resolve, reject}));
     }
 }
