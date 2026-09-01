@@ -259,6 +259,80 @@ should;
     }
 }
 
+@suite class ApiGatewayRouteFindRegressionUnitTests {
+    private gateway: Gateway;
+    before() {
+        const rep = new REPServer({
+            port: 0,
+        });
+        this.gateway = rep['gateway'];
+    }
+
+    @test 'test root route matches'() {
+        const route: Route = {
+            path: '/',
+            method: Method.GET,
+            handler: () => {},
+        };
+
+        this.gateway['routes'] = [route];
+
+        expect(this.gateway['findRoute']('/', Method.GET)).to.equal(route);
+    }
+
+    @test 'test backtracking: early literal match no longer discards a later-matching param route'() {
+        const literalRoute: Route = {
+            path: '/a/b',
+            method: Method.GET,
+            handler: () => {},
+        };
+        const paramRoute: Route = {
+            path: '/:x/c',
+            method: Method.GET,
+            handler: () => {},
+        };
+
+        this.gateway['routes'] = [literalRoute, paramRoute];
+
+        expect(this.gateway['findRoute']('/a/c', Method.GET)).to.equal(paramRoute);
+        expect(this.gateway['findRoute']('/a/b', Method.GET)).to.equal(literalRoute);
+    }
+
+    @test 'test specificity tie-break: literal segment wins over param segment'() {
+        const literalFirstRoute: Route = {
+            path: '/a/:y',
+            method: Method.GET,
+            handler: () => {},
+        };
+        const paramFirstRoute: Route = {
+            path: '/:x/b',
+            method: Method.GET,
+            handler: () => {},
+        };
+
+        this.gateway['routes'] = [literalFirstRoute, paramFirstRoute];
+
+        expect(this.gateway['findRoute']('/a/b', Method.GET)).to.equal(literalFirstRoute);
+    }
+
+    @test 'test narrowing case returns null when no route matches'() {
+        const routeA: Route = {
+            path: '/a/b/z',
+            method: Method.GET,
+            handler: () => {},
+        };
+        const routeB: Route = {
+            path: '/q/:p/c',
+            method: Method.GET,
+            handler: () => {},
+        };
+
+        this.gateway['routes'] = [routeA, routeB];
+
+        expect(this.gateway['findRoute']('/a/b/c', Method.GET)).to.be.null;
+    }
+}
+
 @suite class ApiGatewayExecuteUnitTests {
     private static routes: Route[] = [
         {

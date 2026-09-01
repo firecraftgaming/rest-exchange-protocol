@@ -27,7 +27,7 @@ export class Gateway {
             return;
         }
 
-        responder.setParams(this.findParams(url, route));
+        responder.setParams(this.findParams(url, route)!);
         responder.setQuery(this.findQuery(url));
 
         try {
@@ -56,36 +56,31 @@ export class Gateway {
     }
 
     private findRoute(url: string, method: Method) {
-        const urlParts = this.getPath(url).split('/');
-        const routes = this.routes
+        const candidates = this.routes
             .filter((route) => route.method === method)
-            .map((route) => [this.getPath(route.path).split('/'), route] as [string[], Route])
-            .filter(([routeParts]) => routeParts.length === urlParts.length); // filter out routes with different section lengths and different methods
-        if (routes.length === 0) return null;
+            .filter((route) => this.findParams(url, route) !== null);
+        if (candidates.length === 0) return null;
 
-        let matchingRoutes = routes;
-        for (let i = 0; i < urlParts.length; i++) {
-            const newRoutesParams: [string[], Route][] = [];
-            let newRoutes: [string[], Route][] = [];
-
-            const urlPart = urlParts[i];
-            for (const [routeParts, route] of matchingRoutes) {
-                const routePart = routeParts[i];
-                if (!routePart) continue;
-
-                if (routePart.startsWith(':')) newRoutesParams.push([routeParts, route]);
-                else if (urlPart === routePart) newRoutes.push([routeParts, route]);
-            }
-
-            if (newRoutes.length === 0) newRoutes = newRoutesParams;
-            if (newRoutes.length === 0) return null;
-            matchingRoutes = newRoutes;
-        }
-
-        return matchingRoutes[0][1];
+        return candidates.reduce((best, candidate) => this.moreSpecificRoute(url, best, candidate));
     }
 
-    private findParams(url: string, route: Route): { [key: string]: string } {
+    private moreSpecificRoute(url: string, a: Route, b: Route) {
+        const urlParts = this.getPath(url).split('/');
+        const aParts = this.getPath(a.path).split('/');
+        const bParts = this.getPath(b.path).split('/');
+
+        for (let i = 0; i < urlParts.length; i++) {
+            const aIsParam = aParts[i].startsWith(':');
+            const bIsParam = bParts[i].startsWith(':');
+
+            if (aIsParam && !bIsParam) return b;
+            if (!aIsParam && bIsParam) return a;
+        }
+
+        return a;
+    }
+
+    private findParams(url: string, route: Route): { [key: string]: string } | null {
         const urlParts = this.getPath(url).split('/');
         const routeParts = this.getPath(route.path).split('/');
         if (urlParts.length !== routeParts.length) return null;
