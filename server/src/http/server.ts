@@ -26,7 +26,11 @@ export class HTTPServer {
     private readonly eventEmitter: EventEmitter;
     private readonly gateway: Gateway;
     private readonly repServer: REPServer;
-    constructor({port, host, path}: {port?: number; host?: string; path?: string} = {}, websocket: WebsocketServer, server: REPServer) {
+    constructor(
+        {port, host, path}: {port?: number; host?: string; path?: string} = {},
+        websocket: WebsocketServer,
+        server: REPServer,
+    ) {
         this.repServer = server;
         this.websocket = websocket;
         this.gateway = server['gateway'];
