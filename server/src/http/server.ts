@@ -17,6 +17,14 @@ export const HTTPTranslation = {
     'POST': Method.ACTION,
 };
 
+function writeError(response: ServerResponse, error: WebError) {
+    response.writeHead(error.status, {'Content-Type': 'text/json'});
+    response.write(JSON.stringify({
+        error: error.type,
+    }));
+    response.end();
+}
+
 export class HTTPServer {
     private readonly server: http.Server;
     private readonly websocket: WebsocketServer;
@@ -36,10 +44,18 @@ export class HTTPServer {
         this.path = path;
         this.eventEmitter = new EventEmitter();
         this.server = http.createServer((request: IncomingMessage, response: ServerResponse) => {
-            this.onRequest(request, response);
+            this.onRequest(request, response).catch((e) => {
+                if (response.headersSent || response.writableEnded || response.destroyed) {
+                    response.destroy();
+                    return;
+                }
+
+                writeError(response, e instanceof WebError ? e : new WebError('Internal Server Error'));
+            });
         });
 
         this.server.on('error', (e: any) => {
+            if (this.eventEmitter.listenerCount('error') === 0) return;
             this.eventEmitter.emit('error', e);
         });
 
@@ -91,7 +107,8 @@ export class HTTPServer {
     }
 
     private async onRequest(request: IncomingMessage, response: ServerResponse) {
-        const client = new HTTPClient();
+        const client = new HTTPClient(this.repServer['clients']);
+        response.on('close', () => client['destroy']());
 
         try {
             await this.repServer['executeMiddleWare']({
@@ -104,30 +121,21 @@ export class HTTPServer {
             });
         } catch (e) {
             if (e instanceof MiddlewareProhibitFurtherExecution) return;
-            if (!(e instanceof WebError)) e = new WebError('Internal Server Error');
 
-            response.writeHead(e.status, {'Content-Type': 'text/json'});
-            response.write(JSON.stringify({
-                error: e.type,
-            }));
-            response.end();
+            writeError(response, e instanceof WebError ? e : new WebError('Internal Server Error'));
             return;
         }
 
         const {method, url} = request;
-        if (method === 'OPTIONS') return;
-
-        try {
-            if (!url) throw new WebError('Missing url', 400);
-            if (!HTTPTranslation[method.toUpperCase()]) throw new WebError('Method not allowed', 405);
-        } catch (e) {
-            response.writeHead(e.status, {'Content-Type': 'text/json'});
-            response.write(JSON.stringify({
-                error: e.type,
-            }));
+        if (method === 'OPTIONS') {
+            response.writeHead(204);
             response.end();
             return;
         }
+
+        if (!method) return writeError(response, new WebError('Missing method', 400));
+        if (!url) return writeError(response, new WebError('Missing url', 400));
+        if (!HTTPTranslation[method.toUpperCase()]) return writeError(response, new WebError('Method not allowed', 405));
 
         const body = await this.parseBody(request);
         const responder = new HTTPResponder(body, client, response, request);
@@ -147,6 +155,8 @@ export class HTTPServer {
                     resolve(null);
                 }
             });
+            request.on('error', reject);
+            request.on('aborted', () => reject(new WebError('Request aborted', 400)));
         });
     }
 }
