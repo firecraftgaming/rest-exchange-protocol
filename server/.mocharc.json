@@ -1,4 +1,4 @@
 {
-  "require": "./register.js",
+  "node-option": ["import=tsx"],
   "reporter": "dot"
 }
