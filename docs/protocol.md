@@ -8,15 +8,24 @@ protocol works and how to use it. This document is not meant to be a tutorial on
 to be an explanation of how the protocol works for the curios and those who want to implement it.
 
 ## Methods
-In the REST Exchange Protocol there are 5 different methods that can be used to send messages to the server. They 
-are easily translated to HTTP methods. Following are the methods and their corresponding HTTP methods.
+In the REST Exchange Protocol there are 5 different methods that can be used to send messages to the server. Each 
+one is accepted equally as either its REP name or its corresponding HTTP method — the two spellings are aliases 
+of one another everywhere a method is accepted (over HTTP, in the websocket `method` field, and when registering 
+routes).
 
-- GET - GET
-- CREATE - PUT
-- DELETE - DELETE
-- UPDATE - PATCH
-- ACTION - POST
-- REPLY - N/A (Only used for replies using the `req` property in websocket messages)
+| REP method | HTTP method (accepted as an alias) |
+|---|---|
+| GET | GET |
+| CREATE | PUT |
+| DELETE | DELETE |
+| UPDATE | PATCH |
+| ACTION | POST |
+| REPLY | N/A (Only used for replies using the `req` property in websocket messages) |
+
+Aliases exist so tools like `curl` are unsurprising: `curl -X PUT` and a route registered with `Method.CREATE` 
+refer to the same route, and a websocket message may set `"method": "PUT"` instead of `"method": "CREATE"`. The 
+REP names remain canonical — they are what route-registration shortcuts (`get`/`create`/`delete`/`update`/`action`) 
+produce and what the rest of this document uses.
 
 ## Protocol
 
@@ -41,7 +50,7 @@ The `target` property is a **required** property that should be set to the path.
 ### Method property
 
 The `method` property is a **required** property and should be set to a **valid** method (one of the methods listed 
-before).
+before, or one of their HTTP aliases).
 
 ### Data property
 

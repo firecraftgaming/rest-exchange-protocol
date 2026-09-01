@@ -67,3 +67,50 @@ class TestableSocket {
         }
     }
 }
+
+@suite class ClientRequestMethodAliasUnitTests {
+    private client: REPClient;
+    before() {
+        this.client = new REPClient({
+            host: 'localhost',
+            transport: 'http',
+        });
+    }
+
+    @test 'test request rejects an invalid method'() {
+        expect(() => this.client.request('/clients/123', 'ABC', {})).to.throw('Invalid method');
+    }
+
+    @test async 'test request normalizes an HTTP alias to its REP method'() {
+        let calledWith: string;
+        this.client['requestHttp'] = (path, method) => {
+            calledWith = method;
+            return Promise.resolve();
+        };
+
+        await this.client.request('/clients/123', 'PUT', {});
+        expect(calledWith).to.equal('CREATE');
+    }
+
+    @test async 'test request accepts a REP method unchanged'() {
+        let calledWith: string;
+        this.client['requestHttp'] = (path, method) => {
+            calledWith = method;
+            return Promise.resolve();
+        };
+
+        await this.client.request('/clients/123', 'CREATE', {});
+        expect(calledWith).to.equal('CREATE');
+    }
+
+    @test async 'test request normalizes an HTTP alias over the websocket transport'() {
+        let calledWith: string;
+        this.client['requestWs'] = (path, method) => {
+            calledWith = method;
+            return Promise.resolve();
+        };
+
+        await this.client.request('/clients/123', 'POST', {}, 'ws', false);
+        expect(calledWith).to.equal('ACTION');
+    }
+}

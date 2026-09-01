@@ -1,4 +1,4 @@
-import {Method, Route} from './route';
+import {Method, normalizeMethod, Route} from './route';
 import {Responder, Request} from './responder';
 import {MiddlewareProhibitFurtherExecution, WebError} from './error';
 import {REPServer} from './server';
@@ -56,8 +56,11 @@ export class Gateway {
     }
 
     private findRoute(url: string, method: Method) {
+        const target = normalizeMethod(method) ?? method;
+        const matchesMethod = (route: Route) => (normalizeMethod(route.method) ?? route.method) === target;
+
         const candidates = this.routes
-            .filter((route) => route.method === method)
+            .filter(matchesMethod)
             .filter((route) => this.findParams(url, route) !== null);
         if (candidates.length === 0) return null;
 

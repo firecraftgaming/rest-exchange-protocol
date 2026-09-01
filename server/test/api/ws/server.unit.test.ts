@@ -25,6 +25,13 @@ should;
                 throw new WebError('Hello World', 400);
             },
         },
+        {
+            path: '/clients/:clientID',
+            method: Method.CREATE,
+            handler: () => {
+                return 'Created';
+            },
+        },
     ];
 
     private server: WebsocketServer;
@@ -84,6 +91,21 @@ should;
         }
     }
 
+    @test async 'test websocket server message, non-string method'() {
+        const message = {
+            method: 123,
+            target: '/clients/123',
+        };
+
+        try {
+            await this.server['onMessage'](JSON.stringify(message), null);
+            expect.fail('Should have thrown an error');
+        } catch (e) {
+            expect(e.type).to.equal('Invalid method');
+            expect(e.status).to.equal(400);
+        }
+    }
+
     @test async 'test websocket server message, lower case method'() {
         const message = {
             method: 'get',
@@ -98,6 +120,24 @@ should;
         expect(client.result.data).to.deep.equal({
             status: 200,
             data: 'Hello World',
+        });
+        expect(client.result.req).to.equal(message.req);
+    }
+
+    @test async 'test websocket server message, HTTP alias method reaches REP route'() {
+        const message = {
+            method: 'PUT',
+            target: '/clients/123',
+            req: '123',
+        };
+
+        const client = new TestableWebsocketClient();
+
+        await this.server['onMessage'](JSON.stringify(message), client);
+        expect(client.messages.length).to.equal(1);
+        expect(client.result.data).to.deep.equal({
+            status: 200,
+            data: 'Created',
         });
         expect(client.result.req).to.equal(message.req);
     }

@@ -24,6 +24,27 @@ should;
                 throw new WebError('Hello World', 400);
             },
         },
+        {
+            path: '/clients/:clientID',
+            method: Method.UPDATE,
+            handler: () => {
+                return 'Updated';
+            },
+        },
+        {
+            path: '/clients/:clientID',
+            method: Method.ACTION,
+            handler: () => {
+                return 'Acted';
+            },
+        },
+        {
+            path: '/clients/:clientID',
+            method: Method.DELETE,
+            handler: () => {
+                return 'Deleted';
+            },
+        },
     ];
 
     private server: HTTPServer;
@@ -74,5 +95,65 @@ should;
 
         expect(res.status).to.equal(400);
         expect(JSON.parse(res.result)).to.deep.equal(result);
+    }
+
+    @test async 'test http server PATCH maps to UPDATE'() {
+        const req = new TestableRequest('PATCH', '/clients/123');
+        const res = new TestableResponse();
+
+        this.server['onRequest'](req as any, res as any);
+        req.send();
+        await res.waitForResponse();
+
+        expect(res.status).to.equal(200);
+        expect(JSON.parse(res.result)).to.deep.equal({data: 'Updated'});
+    }
+
+    @test async 'test http server POST maps to ACTION'() {
+        const req = new TestableRequest('POST', '/clients/123');
+        const res = new TestableResponse();
+
+        this.server['onRequest'](req as any, res as any);
+        req.send();
+        await res.waitForResponse();
+
+        expect(res.status).to.equal(200);
+        expect(JSON.parse(res.result)).to.deep.equal({data: 'Acted'});
+    }
+
+    @test async 'test http server DELETE maps to DELETE'() {
+        const req = new TestableRequest('DELETE', '/clients/123');
+        const res = new TestableResponse();
+
+        this.server['onRequest'](req as any, res as any);
+        req.send();
+        await res.waitForResponse();
+
+        expect(res.status).to.equal(200);
+        expect(JSON.parse(res.result)).to.deep.equal({data: 'Deleted'});
+    }
+
+    @test async 'test http server accepts a REP method name as the HTTP verb'() {
+        const req = new TestableRequest('ACTION', '/clients/123');
+        const res = new TestableResponse();
+
+        this.server['onRequest'](req as any, res as any);
+        req.send();
+        await res.waitForResponse();
+
+        expect(res.status).to.equal(200);
+        expect(JSON.parse(res.result)).to.deep.equal({data: 'Acted'});
+    }
+
+    @test async 'test http server unmapped method returns 405'() {
+        const req = new TestableRequest('TRACE', '/clients/123');
+        const res = new TestableResponse();
+
+        this.server['onRequest'](req as any, res as any);
+        req.send();
+        await res.waitForResponse();
+
+        expect(res.status).to.equal(405);
+        expect(JSON.parse(res.result)).to.deep.equal({error: 'Method not allowed'});
     }
 }

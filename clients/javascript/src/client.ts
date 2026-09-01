@@ -1,7 +1,7 @@
 import WebSocket from 'isomorphic-ws';
 import axios from 'axios';
 import {v4} from 'uuid';
-import {Method, Route} from './route';
+import {Method, normalizeMethod, Route} from './route';
 import {Gateway} from './gateway';
 import {Routes} from './routes';
 import {Request} from './request';
@@ -170,15 +170,10 @@ export class REPClient {
     public request(path: string, method: string, data: any, transport: 'ws', call: boolean): Promise<any>;
     public request(path: string, method: string, data: any, transport?: Transport, call = true): Promise<any> {
         transport = transport || this.options.transport;
-        method = method.toUpperCase();
 
-        if (![
-            Method.GET,
-            Method.CREATE,
-            Method.DELETE,
-            Method.UPDATE,
-            Method.ACTION,
-        ].includes(method as Method)) throw new Error('Invalid method');
+        const normalizedMethod = normalizeMethod(method);
+        if (!normalizedMethod) throw new Error('Invalid method');
+        method = normalizedMethod;
 
         if (transport === 'http') return this.requestHttp(path, method, data);
         if (transport === 'ws') return this.requestWs(path, method, data, call);

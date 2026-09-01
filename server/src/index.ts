@@ -1,6 +1,6 @@
 export * from './server';
 export {WebError, MiddlewareProhibitFurtherExecution} from './error';
-export {Method} from './route';
+export {Method, MethodAlias, normalizeMethod} from './route';
 export type {Route} from './route';
 export {WebsocketOutboundMethod} from './ws/server';
 export {Request} from './responder';

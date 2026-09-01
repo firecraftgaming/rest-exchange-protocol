@@ -1,21 +1,13 @@
 import * as http from 'http';
 import {IncomingMessage, ServerResponse} from 'http';
 import {MiddlewareProhibitFurtherExecution, WebError} from '../error';
-import {Method} from '../route';
+import {normalizeMethod} from '../route';
 import {HTTPResponder} from './responder';
 import {Gateway} from '../gateway';
 import {EventEmitter} from 'events';
 import {REPServer} from '../server';
 import {HTTPClient} from './client';
 import {WebsocketServer} from '../ws/server';
-
-export const HTTPTranslation = {
-    'GET': Method.GET,
-    'PUT': Method.CREATE,
-    'DELETE': Method.DELETE,
-    'PATCH': Method.UPDATE,
-    'POST': Method.ACTION,
-};
 
 function writeError(response: ServerResponse, error: WebError) {
     response.writeHead(error.status, {'Content-Type': 'text/json'});
@@ -135,11 +127,13 @@ export class HTTPServer {
 
         if (!method) return writeError(response, new WebError('Missing method', 400));
         if (!url) return writeError(response, new WebError('Missing url', 400));
-        if (!HTTPTranslation[method.toUpperCase()]) return writeError(response, new WebError('Method not allowed', 405));
+
+        const normalizedMethod = normalizeMethod(method);
+        if (!normalizedMethod) return writeError(response, new WebError('Method not allowed', 405));
 
         const body = await this.parseBody(request);
         const responder = new HTTPResponder(body, client, response, request);
-        await this.gateway.execute(url, HTTPTranslation[method.toUpperCase()], responder);
+        await this.gateway.execute(url, normalizedMethod, responder);
     }
 
     private parseBody(request: IncomingMessage) {

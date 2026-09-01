@@ -2,7 +2,7 @@ import {WebsocketClient} from './client';
 import {WebSocket} from 'ws';
 import * as http from 'http';
 import {MiddlewareProhibitFurtherExecution, WebError} from '../error';
-import {Method} from '../route';
+import {Method, normalizeMethod} from '../route';
 import {WebsocketRequest} from './request';
 import {WebsocketResponder} from './responder';
 import {Gateway} from '../gateway';
@@ -106,6 +106,7 @@ export class WebsocketServer {
 
         const message = JSON.parse(data);
         if (!message.method) throw new WebError('Missing method', 400);
+        if (typeof message.method !== 'string') throw new WebError('Invalid method', 400);
 
         if (message.method.toUpperCase() === WebsocketOutboundMethod.REPLY) {
             if (!message.req) throw new WebError('Missing request id', 400);
@@ -116,20 +117,15 @@ export class WebsocketServer {
 
         if (!message.target) throw new WebError('Missing target', 400);
 
-        if (![
-            Method.GET,
-            Method.CREATE,
-            Method.DELETE,
-            Method.UPDATE,
-            Method.ACTION,
-        ].includes(message.method.toUpperCase())) throw new WebError('Invalid method', 400);
+        const normalizedMethod = normalizeMethod(message.method);
+        if (!normalizedMethod) throw new WebError('Invalid method', 400);
 
-        await this.translateRequest(message, websocket, data);
+        await this.translateRequest(message, normalizedMethod, websocket, data);
     }
 
-    private async translateRequest(data: WebsocketRequest, websocket: WebsocketClient, raw: unknown) {
+    private async translateRequest(data: WebsocketRequest, method: Method, websocket: WebsocketClient, raw: unknown) {
         const responder = new WebsocketResponder(data.data, websocket, raw, data.req);
-        await this.gateway.execute(data.target, data.method.toUpperCase() as Method, responder);
+        await this.gateway.execute(data.target, method, responder);
     }
 
     private async onClose(websocket: WebsocketClient, error?: Error) {

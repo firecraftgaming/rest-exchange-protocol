@@ -1,4 +1,4 @@
-import {Method, Route} from './route';
+import {Method, normalizeMethod, Route} from './route';
 import {Request} from './request';
 import {MiddlewareProhibitFurtherExecution, WebError} from './error';
 import {REPClient} from './client';
@@ -59,9 +59,13 @@ export class Gateway {
             return;
         }
 
-        method = method.toUpperCase() as Method;
+        const normalizedMethod = normalizeMethod(method);
+        if (!normalizedMethod) {
+            if (req) this.sendError(req, 400, 'Invalid method', url);
+            return;
+        }
 
-        const route = this.findRoute(url, method);
+        const route = this.findRoute(url, normalizedMethod);
         if (!route) {
             if (req) this.sendError(req, 404, 'Not Found', url);
             return;
@@ -99,8 +103,11 @@ export class Gateway {
     }
 
     private findRoute(url: string, method: Method) {
+        const target = normalizeMethod(method) ?? method;
+        const matchesMethod = (route: Route) => (normalizeMethod(route.method) ?? route.method) === target;
+
         const candidates = this.routes
-            .filter((route) => route.method === method)
+            .filter(matchesMethod)
             .filter((route) => this.findParams(url, route) !== null);
         if (candidates.length === 0) return null;
 

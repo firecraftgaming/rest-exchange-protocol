@@ -354,3 +354,71 @@ should;
         ]);
     }
 }
+
+@suite class ApiGatewayMethodAliasUnitTests {
+    private gateway: Gateway;
+    before() {
+        const rep = new REPClient({
+            host: 'localhost',
+        });
+        this.gateway = rep['gateway'];
+    }
+
+    @test 'registering a route with an HTTP alias stores it unchanged'() {
+        const handler = () => {};
+        const route = {path: '/clients', method: 'PUT', handler};
+        this.gateway.register(route);
+
+        expect(this.gateway['routes']).to.deep.equal([route]);
+    }
+
+    @test 'a route registered with an HTTP alias is found by the REP method'() {
+        const handler = () => {};
+        this.gateway.register({path: '/clients', method: 'PATCH', handler});
+
+        const route = this.gateway['findRoute']('/clients', Method.UPDATE);
+        expect(route).to.deep.equal({path: '/clients', method: 'PATCH', handler});
+    }
+
+    @test 'a route registered with a REP method is found by its HTTP alias'() {
+        const handler = () => {};
+        this.gateway.register({path: '/clients', method: Method.ACTION, handler});
+
+        const route = this.gateway['findRoute']('/clients', 'POST' as Method);
+        expect(route).to.deep.equal({path: '/clients', method: Method.ACTION, handler});
+    }
+
+    @test 'unregistering a route registered with an HTTP alias removes it by identity'() {
+        const route = {path: '/clients', method: 'PUT', handler: () => {}};
+        this.gateway.register(route);
+        this.gateway.unregister(route);
+
+        expect(this.gateway['routes']).to.deep.equal([]);
+    }
+
+    @test async 'executing an invalid method replies with 400'() {
+        const errors: {status: number; error: string}[] = [];
+        this.gateway['sendError'] = (req: string, status: number, error: string) => errors.push({status, error});
+
+        await this.gateway.execute('/clients', 'ABC' as Method, {}, '123');
+        expect(errors).to.deep.equal([{status: 400, error: 'Invalid method'}]);
+    }
+
+    @test async 'executing a non-string method replies with 400 instead of throwing'() {
+        const errors: {status: number; error: string}[] = [];
+        this.gateway['sendError'] = (req: string, status: number, error: string) => errors.push({status, error});
+
+        await this.gateway.execute('/clients', 123 as any, {}, '123');
+        expect(errors).to.deep.equal([{status: 400, error: 'Invalid method'}]);
+    }
+
+    @test async 'executing an HTTP alias reaches the REP route handler'() {
+        let called = false;
+        this.gateway.register({path: '/clients', method: Method.ACTION, handler: () => {
+            called = true;
+        }});
+
+        await this.gateway.execute('/clients', 'POST' as Method, {});
+        expect(called).to.be.true;
+    }
+}
