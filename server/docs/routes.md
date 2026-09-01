@@ -31,7 +31,7 @@ const app = new REPServer();
 app.get('/user/:id', async (request) => {
     const user = await getUser(request.params.id); // getUser, does not exist but is used as an example
     if (!user) {
-        throw new WebError(404, 'User not found');
+        throw new WebError('User not found', 404);
     }
     return user;
 });

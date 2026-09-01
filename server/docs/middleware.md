@@ -94,7 +94,7 @@ If you want to eg. send a custom response to the client on a route you could do 
 const app = new REPServer();
 app.use((data) => {
     if (data.type === 'pre-route' && data.route.path === '/custom') {
-        data.responder.send('Hello World!');
+        data.responder.respond('Hello World!');
         throw new MiddlewareProhibitFurtherExecution();
     }
 });
