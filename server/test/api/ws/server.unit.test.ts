@@ -5,6 +5,7 @@ import {WebError} from '../../../src/error';
 import {WebsocketServer} from '../../../src/ws/server';
 import {TestableWebsocket, TestableWebsocketClient} from '../../utility/websocket.mock';
 import {REPServer} from '../../../src';
+import {MiddleWareData} from '../../../src/server';
 
 should;
 @suite class ApiWebsocketServerUnitTests {
@@ -209,5 +210,82 @@ should;
         expect(websocket.messages.length).to.equal(1);
         if (typeof websocket.result === 'string') expect(JSON.parse(websocket.result)).to.deep.equal(result);
         else expect.fail('Result is not a string');
+    }
+
+    @test async 'test websocket server fire-and-forget message gets no reply'() {
+        const websocket = new TestableWebsocket();
+        this.server['onConnection'](websocket, {
+            socket: {
+                remoteAddress: '0.0.0.0',
+            },
+        } as any);
+
+        const message = {
+            method: 'GET',
+            target: '/clients/123',
+        };
+
+        websocket.events.emit('message', JSON.stringify(message));
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        expect(websocket.messages.length).to.equal(0);
+    }
+
+    @test async 'test websocket server reply frame with empty target is accepted'() {
+        const client = new TestableWebsocketClient();
+
+        const message = {
+            method: 'REPLY',
+            target: '',
+            req: '123',
+        };
+
+        await this.server['onMessage'](JSON.stringify(message), client);
+        expect(client.messages.length).to.equal(0);
+    }
+
+    @test async 'test websocket server middleware error produces error reply, not route execution'() {
+        let handlerCalled = false;
+
+        const rep = new REPServer({
+            port: 0,
+        });
+        rep['gateway']['routes'] = [{
+            path: '/clients/:clientID',
+            method: Method.GET,
+            handler: () => {
+                handlerCalled = true;
+                return 'should not run';
+            },
+        }];
+        rep.use((data: MiddleWareData) => {
+            if (data.type === 'websocket-message') throw new WebError('Blocked', 403);
+        });
+
+        const server = rep['wsServer'];
+        const websocket = new TestableWebsocket();
+        server['onConnection'](websocket, {
+            socket: {
+                remoteAddress: '0.0.0.0',
+            },
+        } as any);
+
+        const message = {
+            method: 'GET',
+            target: '/clients/123',
+            req: '123',
+        };
+
+        websocket.events.emit('message', JSON.stringify(message));
+
+        await websocket.waitForMessage();
+        expect(handlerCalled).to.be.false;
+        expect(websocket.messages.length).to.equal(1);
+
+        if (typeof websocket.result !== 'string') return expect.fail('Result is not a string');
+
+        const result = JSON.parse(websocket.result);
+        expect(result.data.status).to.equal(403);
+        expect(result.data.error).to.equal('Blocked');
     }
 }

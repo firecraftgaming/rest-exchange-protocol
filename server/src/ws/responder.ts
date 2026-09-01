@@ -4,8 +4,8 @@ import {WebsocketClient} from './client';
 import {WebsocketOutboundMethod} from './server';
 export class WebsocketResponder extends Responder {
     private readonly websocket: WebsocketClient;
-    private readonly req: string | null;
-    constructor(data: unknown, websocket: WebsocketClient, raw: unknown, req: string | null) {
+    private readonly req: string | undefined;
+    constructor(data: unknown, websocket: WebsocketClient, raw: unknown, req: string | undefined) {
         super(data, websocket);
         this.setRaw(raw);
 
@@ -14,7 +14,7 @@ export class WebsocketResponder extends Responder {
     }
 
     respond(data: unknown) {
-        if (this.req === null) return;
+        if (!this.req) return;
         this.websocket.reply(
             '',
             WebsocketOutboundMethod.REPLY,
@@ -28,6 +28,7 @@ export class WebsocketResponder extends Responder {
         );
     }
     error(error: WebError) {
+        if (!this.req) return;
         this.websocket.reply(
             'error',
             WebsocketOutboundMethod.REPLY,

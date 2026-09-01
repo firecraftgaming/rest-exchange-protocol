@@ -68,11 +68,12 @@ export class WebsocketServer {
                 );
             }
         });
+        let connectionError: Error | undefined;
         websocket.on('error', e => {
-            this.onClose(client, e);
+            connectionError = e;
         });
         websocket.on('close', () => {
-            this.onClose(client);
+            this.onClose(client, connectionError);
         });
 
         try {
@@ -82,7 +83,10 @@ export class WebsocketServer {
                 client,
                 request,
             });
-        } catch (e) {}
+        } catch (e) {
+            websocket.close();
+            client['destroy']();
+        }
     }
 
     private async onMessage(data: any, websocket: WebsocketClient) {
@@ -97,18 +101,20 @@ export class WebsocketServer {
             });
         } catch (e) {
             if (e instanceof MiddlewareProhibitFurtherExecution) return;
+            throw e;
         }
 
         const message = JSON.parse(data);
         if (!message.method) throw new WebError('Missing method', 400);
-        if (!message.target) throw new WebError('Missing target', 400);
 
-        if (message.method === WebsocketOutboundMethod.REPLY) {
+        if (message.method.toUpperCase() === WebsocketOutboundMethod.REPLY) {
             if (!message.req) throw new WebError('Missing request id', 400);
 
             websocket['resolveRequest'](message.req, message.data);
             return;
         }
+
+        if (!message.target) throw new WebError('Missing target', 400);
 
         if (![
             Method.GET,

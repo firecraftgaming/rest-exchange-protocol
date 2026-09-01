@@ -4,5 +4,5 @@ export interface WebsocketRequest {
 
     data: unknown;
 
-    req: string;
+    req?: string;
 }

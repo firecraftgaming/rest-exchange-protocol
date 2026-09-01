@@ -1,14 +1,18 @@
 import {Client} from '../client';
 import {WebSocket} from 'ws';
 import http from 'http';
+import {v4} from 'uuid';
+import {WebError} from '../error';
 import {WebsocketOutboundMethod} from './server';
 import {ClientManager} from '../clients';
 
 export class WebsocketClient extends Client {
     public readonly websocket: WebSocket;
-    constructor(websocket: WebSocket, manager: ClientManager, _request: http.IncomingMessage) {
+    public readonly request: http.IncomingMessage;
+    constructor(websocket: WebSocket, manager: ClientManager, request: http.IncomingMessage) {
         super(manager);
         this.websocket = websocket;
+        this.request = request;
     }
 
     public reply(target: string | null, method: WebsocketOutboundMethod, data: unknown, req: string | null) {
@@ -24,7 +28,7 @@ export class WebsocketClient extends Client {
 
     public async send(target: string | null, method: WebsocketOutboundMethod, data: unknown, call = true) {
         let req;
-        if (call) req = Math.random().toString(36).substring(2);
+        if (call) req = v4();
 
         this.websocket.send(JSON.stringify({
             target,
@@ -36,20 +40,35 @@ export class WebsocketClient extends Client {
         }));
 
         if (call)
-            return await new Promise((resolve, _reject) => this.addRequestCallback(req, resolve));
+            return await new Promise((resolve, reject) => this.addRequestCallback(req, resolve, reject));
     }
 
-    private readonly requests = new Map<string, (data: unknown) => void>();
-    private addRequestCallback(request: string, callback: (data: unknown) => void) {
-        this.requests.set(request, callback);
+    private readonly requests = new Map<string, {resolve: (data: unknown) => void; reject: (error: Error) => void}>();
+    private addRequestCallback(request: string, resolve: (data: unknown) => void, reject: (error: Error) => void) {
+        this.requests.set(request, {resolve, reject});
     }
 
-    private resolveRequest(request: string, data: unknown) {
+    private resolveRequest(request: string, envelope?: {status: number; data?: unknown; error?: string}) {
         const callback = this.requests.get(request);
         if (!callback) return;
 
         this.requests.delete(request);
-        callback(data);
+
+        const status = envelope?.status ?? 500;
+        if (status < 400) {
+            callback.resolve(envelope?.data);
+            return;
+        }
+
+        callback.reject(new WebError(envelope?.error ?? 'Malformed reply', status));
+    }
+
+    protected destroy() {
+        for (const {reject} of this.requests.values())
+            reject(new WebError('Client disconnected'));
+
+        this.requests.clear();
+        super.destroy();
     }
 
     public close() {
