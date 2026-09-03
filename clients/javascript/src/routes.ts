@@ -1,6 +1,6 @@
 import {Gateway} from './gateway';
 import {Request} from './request';
-import {Route} from './route';
+import {Method, Route} from './route';
 
 export class Routes {
     private readonly gateway: Gateway;
@@ -55,6 +55,15 @@ export class Routes {
             method: 'ACTION',
             path,
             handler,
+        });
+    }
+
+    listen(method: Method | string, path: string, handler: Route['handler']) {
+        this.register({
+            method,
+            path,
+            handler,
+            passive: true,
         });
     }
 }

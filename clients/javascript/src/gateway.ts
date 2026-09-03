@@ -65,21 +65,31 @@ export class Gateway {
             return;
         }
 
-        const route = this.findRoute(url, normalizedMethod);
-        if (!route) {
+        const matching = this.matchingRoutes(url, normalizedMethod);
+        const route = this.pickRoute(url, matching.filter((r) => !r.passive));
+        const passives = matching.filter((r) => r.passive);
+        if (!route && passives.length === 0) {
             if (req) this.sendError(req, 404, 'Not Found', url);
             return;
         }
 
-        const request = new Request(data);
-        request.setParams(this.findParams(url, route)!);
-        request.setQuery(this.findQuery(url));
+        const query = this.findQuery(url);
+        const buildRequest = (forRoute: Route) => {
+            const request = new Request(data);
+            request.setParams(this.findParams(url, forRoute)!);
+            request.setQuery(query);
+            return request;
+        };
+
+        const passiveRequests = passives.map(buildRequest);
+        const request = route ? buildRequest(route) : passiveRequests[0];
 
         try {
             await this.client['executeMiddleWare']({
                 type: 'pre-route',
 
                 route,
+                passives,
                 request,
             });
         } catch (e) {
@@ -92,7 +102,19 @@ export class Gateway {
         }
 
         try {
-            const result = await route.handler(request);
+            for (let i = 0; i < passives.length; i++)
+                await passives[i].handler(passiveRequests[i]);
+        } catch (e) {
+            if (e instanceof MiddlewareProhibitFurtherExecution) return;
+            if (!(e instanceof WebError))
+                e = new WebError('Internal Server Error');
+
+            if (req) this.sendError(req, e.status, e.type, url);
+            return;
+        }
+
+        try {
+            const result = route ? await route.handler(request) : {};
             if (req) this.sendResult(req, result, url);
         } catch (e) {
             if (!(e instanceof WebError))
@@ -103,15 +125,23 @@ export class Gateway {
     }
 
     private findRoute(url: string, method: Method) {
-        const target = normalizeMethod(method) ?? method;
-        const matchesMethod = (route: Route) => (normalizeMethod(route.method) ?? route.method) === target;
+        const candidates = this.matchingRoutes(url, method).filter((route) => !route.passive);
+        return this.pickRoute(url, candidates);
+    }
 
-        const candidates = this.routes
-            .filter(matchesMethod)
-            .filter((route) => this.findParams(url, route) !== null);
+    private pickRoute(url: string, candidates: Route[]) {
         if (candidates.length === 0) return null;
 
         return candidates.reduce((best, candidate) => this.moreSpecificRoute(url, best, candidate));
+    }
+
+    private matchingRoutes(url: string, method: Method) {
+        const target = normalizeMethod(method) ?? method;
+        const matchesMethod = (route: Route) => (normalizeMethod(route.method) ?? route.method) === target;
+
+        return this.routes
+            .filter(matchesMethod)
+            .filter((route) => this.findParams(url, route) !== null);
     }
 
     private moreSpecificRoute(url: string, a: Route, b: Route) {

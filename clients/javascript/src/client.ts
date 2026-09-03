@@ -27,7 +27,8 @@ export interface WebsocketMessageMiddleWareData {
 export interface PreRouteMiddleWareData {
     type: 'pre-route';
 
-    route: Route;
+    route: Route | null;
+    passives: Route[];
     request: Request;
 }
 

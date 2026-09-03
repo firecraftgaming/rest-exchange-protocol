@@ -51,3 +51,30 @@ app.routes.get('/user/:id', (request) => {
     return `Hello, user ${request.params.id}!`;
 });
 ```
+
+## Passive routes
+
+A normal route is matched exclusively — the most specific match wins and only its handler runs.
+Sometimes you want the opposite: several independent pieces of code all reacting to the same
+server-pushed request, such as multiple listeners for a real-time event. That's what a **passive**
+route is for.
+
+Register one with `routes.listen`, or by setting `passive: true` on `register`:
+
+```ts
+const app = new REPClient();
+app.routes.listen('ACTION', '/events/order/:id', (request) => {
+    // do something with the event
+});
+```
+
+Passive routes are matched the same way normal routes are (static segments, `:params`), but every
+passive route matching the incoming request runs, in the order they were registered, before the
+normal route (if any) is dispatched. A passive handler's return value is discarded — it cannot
+produce the response. It can only affect the outcome by throwing: throw a `WebError` (or any error,
+which becomes a 500) to abort the request and send that error as the response; a plain `return` lets
+the chain continue. A passive can also throw `MiddlewareProhibitFurtherExecution` to abort the
+request without sending any reply at all, the same escape hatch middleware has.
+
+If every passive handler passes and no normal route matched the request, the client replies with
+`200 {}`. A 404 is only sent when neither a normal route nor any passive route matched.

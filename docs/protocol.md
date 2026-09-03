@@ -82,6 +82,34 @@ present and has to be present when the **status** does not start with a **2**. S
 only be present and has to be present when the **status** starts with a **2**. The `error` property can similarly 
 to the `data` property have any type such as `string` or `array` but also `null`.
 
+## Passive routes
+
+A normal route is matched exclusively — of every registered route matching a request's path and
+method, only the single most specific one runs, and its return value becomes the response.
+
+Implementations may additionally support **passive** routes, matched the same way (path and
+method) but not exclusively: every passive route matching a request runs, in the order it was
+registered, in a first pass that precedes normal route dispatch. A passive handler cannot produce
+a response body directly — it either throws, which aborts the request and sends that error as the
+reply, or returns normally, in which case dispatch continues to the next passive and, after all of
+them pass, to the normal route (if any).
+
+This lets multiple independent handlers all observe the same server-pushed request — such as
+several listeners reacting to the same real-time event — without one having to fan out to the
+others itself.
+
+Dispatch, when passive routes are supported, follows:
+
+1. Find every passive route matching the request's path and method; run them in registration order.
+   If any throws, that error is sent as the reply and no further handler runs. An implementation
+   may additionally offer an escape hatch (such as the JS client's `MiddlewareProhibitFurtherExecution`)
+   for a passive to abort the request without sending any reply at all.
+2. Find the single most specific normal route matching the request, as today. If one matched, run
+   it and send its return value (or thrown error) as the reply, exactly as without passive routes.
+3. If no normal route matched but at least one passive route did, reply with status `200` and an
+   empty `data` object (`{}`).
+4. If neither a normal route nor any passive route matched, reply with `404`.
+
 ## Authentication and Headers
 
 The REST Exchange Protocol does not specify how authentication should be handled. It is up to the developer to 

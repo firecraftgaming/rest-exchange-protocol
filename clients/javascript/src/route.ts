@@ -29,6 +29,7 @@ export function normalizeMethod(method: string): Method | null {
 export interface Route {
     method: Method | string;
     path: string;
+    passive?: boolean;
 
     handler: (request: Request) => unknown;
 }

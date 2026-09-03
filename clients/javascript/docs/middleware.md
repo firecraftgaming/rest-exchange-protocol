@@ -24,7 +24,8 @@ The websocket message data object has the following properties:
 ### Pre Route
 The pre route data object has the following properties:
 - `type`: `pre-route`
-- `route`: The route object
+- `route`: The matched route object, or `null` if the request only matched [passive routes](routes.md#passive-routes)
+- `passives`: The matched passive routes, in the order they will run (empty if none matched)
 - `request`: The request object
 
 ## Examples
@@ -41,7 +42,8 @@ app.use((data) => {
         case 'pre-route':
             // do something with the route
             
-            // data.route is the route object
+            // data.route is the matched route object, or null if only passives matched
+            // data.passives is the list of matched passive routes
             // data.request is the request object
             break;
     }
@@ -52,7 +54,7 @@ If you want to eg. send a custom response to the client on a route you could do 
 ```ts
 const app = new REPClient();
 app.use((data) => {
-    if (data.type === 'pre-route' && data.route.path === '/custom') {
+    if (data.type === 'pre-route' && data.route?.path === '/custom') {
         // Some custom response
         throw new MiddlewareProhibitFurtherExecution();
     }
