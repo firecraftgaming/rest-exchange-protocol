@@ -15,8 +15,8 @@ export interface TestableWebsocketClientResult {
 export class TestableWebsocketClient extends WebsocketClient {
     public result = {} as TestableWebsocketClientResult;
     public messages: TestableWebsocketClientResult[] = [];
-    constructor() {
-        super(null, new ClientManager(), null);
+    constructor(socket: any = null) {
+        super(socket, new ClientManager(), null);
     }
 
     public reply(target: string | null, method: WebsocketOutboundMethod, data: unknown, req: string | null) {
@@ -52,7 +52,10 @@ export class TestableWebsocket {
         this.events.on(event, listener);
     }
 
-    public close() {}
+    public closed = false;
+    public close() {
+        this.closed = true;
+    }
 
     public waitForMessage() {
         return new Promise((resolve) => {

@@ -122,6 +122,78 @@ should;
         const params = this.gateway['findQuery'](url);
         expect(params).to.deep.equal({test: '1234', test2: '5678'});
     }
+
+    @test 'a bare question mark yields an empty query'() {
+        expect(this.gateway['findQuery']('/clients?')).to.deep.equal({});
+    }
+
+    @test 'URL-encoded query values are decoded'() {
+        expect(this.gateway['findQuery']('/clients?name=a%20b')).to.deep.equal({name: 'a b'});
+    }
+
+    @test 'a plus in a query value decodes to a space'() {
+        expect(this.gateway['findQuery']('/clients?name=a+b')).to.deep.equal({name: 'a b'});
+    }
+
+    @test 'a repeated query key keeps the last value'() {
+        expect(this.gateway['findQuery']('/clients?x=1&x=2')).to.deep.equal({x: '2'});
+    }
+
+    @test 'a query key with no value becomes an empty string'() {
+        expect(this.gateway['findQuery']('/clients?flag')).to.deep.equal({flag: ''});
+    }
+
+    @test 'an absolute URL resolves params relative to its pathname'() {
+        const route: Route = {
+            path: '/clients/:id',
+            method: Method.GET,
+            handler: () => {},
+        };
+
+        expect(this.gateway['findParams']('http://example.com/clients/42?x=1', route)).to.deep.equal({id: '42'});
+        expect(this.gateway['findQuery']('http://example.com/clients/42?x=1')).to.deep.equal({x: '1'});
+    }
+
+    @test 'a route path with a trailing slash still matches'() {
+        const route: Route = {
+            path: '/clients/',
+            method: Method.GET,
+            handler: () => {},
+        };
+
+        expect(this.gateway['findParams']('/clients', route)).to.deep.equal({});
+    }
+
+    @test 'a root-level param route matches a single segment'() {
+        const route: Route = {
+            path: '/:id',
+            method: Method.GET,
+            handler: () => {},
+        };
+
+        expect(this.gateway['findParams']('/42', route)).to.deep.equal({id: '42'});
+    }
+
+    @test 'params are taken verbatim without URL-decoding'() {
+        const route: Route = {
+            path: '/clients/:name',
+            method: Method.GET,
+            handler: () => {},
+        };
+
+        expect(this.gateway['findParams']('/clients/a%20b', route)).to.deep.equal({name: 'a%20b'});
+    }
+
+    @test 'an empty path segment must match a literal empty segment'() {
+        const route: Route = {
+            path: '/a//b',
+            method: Method.GET,
+            handler: () => {},
+        };
+
+        expect(this.gateway['findParams']('/a//b', route)).to.deep.equal({});
+        expect(this.gateway['findParams']('/a/x/b', route)).to.be.null;
+    }
 }
 
 @suite class ApiGatewayRouteFindUnitTests {
@@ -329,5 +401,22 @@ should;
         this.gateway['routes'] = [routeA, routeB];
 
         expect(this.gateway['findRoute']('/a/b/c', Method.GET)).to.be.null;
+    }
+
+    @test 'a fully-literal tie picks the first registered route'() {
+        const first: Route = {
+            path: '/a/b',
+            method: Method.GET,
+            handler: () => {},
+        };
+        const second: Route = {
+            path: '/a/b',
+            method: Method.GET,
+            handler: () => {},
+        };
+
+        this.gateway['routes'] = [first, second];
+
+        expect(this.gateway['findRoute']('/a/b', Method.GET)).to.equal(first);
     }
 }

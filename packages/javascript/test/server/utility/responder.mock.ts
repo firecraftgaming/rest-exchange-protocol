@@ -1,5 +1,6 @@
 import {Responder} from '../../../src/server/responder';
 import {WebError} from '../../../src/shared/error';
+import {Client} from '../../../src/server/client';
 
 export interface TestableResponderResult {
     params: Record<string, string>;
@@ -28,8 +29,8 @@ export class TestableResponder extends Responder {
         params: {},
         query: {},
     } as TestableResponderResult;
-    constructor() {
-        super(null);
+    constructor(data: unknown = null, client?: Client) {
+        super(data, client);
     }
 
     setParams(params: Record<string, string>) {

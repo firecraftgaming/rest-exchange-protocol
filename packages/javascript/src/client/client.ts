@@ -89,6 +89,7 @@ export class REPClient {
         const protocol = this.options.secure ? 'wss' : 'ws';
         this.socket = new WebSocket(`${protocol}://${this.options.host}`);
         this.socket.addEventListener('open', this.onOpen);
+        this.socket.addEventListener('error', this.onError);
     }
 
     public disconnect() {
@@ -102,7 +103,6 @@ export class REPClient {
         this.connected_ = true;
 
         this.socket.addEventListener('message', this.onMessage);
-        this.socket.addEventListener('error', this.onError);
         this.socket.addEventListener('close', this.onClose);
     }
 
@@ -114,7 +114,7 @@ export class REPClient {
             });
 
             const data = JSON.parse(event.data);
-            if (data.method === 'REPLY') {
+            if (typeof data.method === 'string' && data.method.toUpperCase() === 'REPLY') {
                 this.handleReply(data.req, data.data);
                 return;
             }
@@ -149,7 +149,6 @@ export class REPClient {
     private teardownSocket() {
         this.socket?.removeEventListener('open', this.onOpen);
         this.socket?.removeEventListener('message', this.onMessage);
-        this.socket?.removeEventListener('error', this.onError);
         this.socket?.removeEventListener('close', this.onClose);
         this.socket = null;
 

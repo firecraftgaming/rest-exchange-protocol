@@ -122,6 +122,38 @@ should;
         const params = this.gateway['findQuery'](url);
         expect(params).to.deep.equal({test: '1234', test2: '5678'});
     }
+
+    @test 'a bare question mark yields an empty query'() {
+        expect(this.gateway['findQuery']('/clients?')).to.deep.equal({});
+    }
+
+    @test 'URL-encoded query values are decoded'() {
+        expect(this.gateway['findQuery']('/clients?name=a%20b')).to.deep.equal({name: 'a b'});
+    }
+
+    @test 'a repeated query key keeps the last value'() {
+        expect(this.gateway['findQuery']('/clients?x=1&x=2')).to.deep.equal({x: '2'});
+    }
+
+    @test 'an absolute URL resolves params relative to its pathname'() {
+        const route: Route = {
+            path: '/clients/:id',
+            method: Method.GET,
+            handler: () => {},
+        };
+
+        expect(this.gateway['findParams']('http://example.com/clients/42?x=1', route)).to.deep.equal({id: '42'});
+    }
+
+    @test 'a root-level param route matches a single segment'() {
+        const route: Route = {
+            path: '/:id',
+            method: Method.GET,
+            handler: () => {},
+        };
+
+        expect(this.gateway['findParams']('/42', route)).to.deep.equal({id: '42'});
+    }
 }
 
 @suite class ApiGatewayRouteFindUnitTests {

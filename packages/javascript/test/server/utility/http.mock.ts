@@ -29,6 +29,14 @@ export class TestableRequest {
             this._events.emit('end');
         });
     }
+
+    public emitError(error: Error) {
+        this._events.emit('error', error);
+    }
+
+    public emitAborted() {
+        this._events.emit('aborted');
+    }
 }
 
 export class TestableResponse {
@@ -73,5 +81,20 @@ export class TestableResponse {
                 resolve(data);
             });
         });
+    }
+}
+
+export function wait(ms = 0) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export class TestableUpgradeSocket {
+    public written: string[] = [];
+    public destroyed = false;
+    public write(data: string) {
+        this.written.push(data);
+    }
+    public destroy() {
+        this.destroyed = true;
     }
 }
