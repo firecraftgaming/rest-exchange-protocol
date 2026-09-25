@@ -8,6 +8,23 @@ server and client. It also provides a faster communication between the server an
 to negotiate a new TCP handshake between requests. Another key thing is *Reverse REST* which is a way to send 
 REST requests from a server to a client using websockets.
 
+## Installation
+
+The JavaScript/TypeScript implementation ships as a single npm package, `rest-exchange-protocol`, with the
+server and client as separate entry points:
+
+```sh
+npm install rest-exchange-protocol
+```
+
+```ts
+import { REPServer } from 'rest-exchange-protocol';
+import { REPClient } from 'rest-exchange-protocol/client';
+```
+
+See [packages/javascript](packages/javascript) for full usage docs, and [docs/protocol.md](docs/protocol.md) for
+the language-neutral protocol specification.
+
 ## Contributions
 
 REST Exchange Protocol is open to contributions, but it is recommended to create an issue or communicate with one of the maintainers to let everyone know what you are working on first that way we don't overwrite each other.

@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "server/**"
+      - "packages/javascript/**"
   workflow_dispatch:
 
 permissions:
@@ -14,7 +14,7 @@ permissions:
 
 defaults:
   run:
-    working-directory: server
+    working-directory: packages/javascript
 
 jobs:
   publish:
@@ -29,7 +29,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'yarn'
-          cache-dependency-path: server/yarn.lock
+          cache-dependency-path: packages/javascript/yarn.lock
           registry-url: 'https://registry.npmjs.org'
 
       - name: Update npm for trusted publishing
