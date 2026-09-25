@@ -1,5 +1,6 @@
 import WebSocket from 'isomorphic-ws';
 import axios from 'axios';
+import {useTry} from 'no-try';
 import {v4} from 'uuid';
 import {Method, normalizeMethod, Route} from './route';
 import {Gateway} from './gateway';
@@ -45,6 +46,22 @@ export interface REPClientOptions {
 
     transport?: Transport;
     secure?: boolean;
+}
+
+export type ValidateStatus = (status: number) => boolean;
+
+const isSuccessStatus: ValidateStatus = (status) => status < 400;
+
+export interface RequestOptions {
+    transport?: Transport;
+    call?: boolean;
+    validateStatus?: ValidateStatus;
+}
+
+interface PendingRequest {
+    resolve: (data: any) => void;
+    reject: (error: WebError) => void;
+    validateStatus?: ValidateStatus;
 }
 
 export class REPClient {
@@ -134,8 +151,11 @@ export class REPClient {
         this.requests.delete(req);
 
         const status = envelope?.status ?? 500;
-        if (status < 400) pending.resolve(envelope?.data);
-        else pending.reject(new WebError(envelope?.error ?? 'Malformed reply', status));
+        const [error, isValid] = useTry(() => (pending.validateStatus ?? isSuccessStatus)(status));
+        if (error) return pending.reject(new WebError(error.message, 500));
+
+        if (!isValid) return pending.reject(new WebError(envelope?.error ?? 'Malformed reply', status));
+        pending.resolve(envelope?.data);
     }
 
     private onError(error: Error) {
@@ -163,26 +183,24 @@ export class REPClient {
         this.requests.clear();
     }
 
-    private requests: Map<string, {resolve: (data: any) => void; reject: (error: WebError) => void}> = new Map();
+    private requests: Map<string, PendingRequest> = new Map();
 
-    public request(path: string, method: string, data: any): Promise<any>;
-    public request(path: string, method: string, data: any, transport: Transport): Promise<any>;
-    public request(path: string, method: string, data: any, transport: 'ws', call: boolean): Promise<any>;
-    public request(path: string, method: string, data: any, transport?: Transport, call = true): Promise<any> {
-        transport = transport || this.options.transport;
+    public request(path: string, method: string, data: any, options: RequestOptions = {}): Promise<any> {
+        const {call = true, validateStatus} = options;
+        const transport = options.transport || this.options.transport;
 
         const normalizedMethod = normalizeMethod(method);
         if (!normalizedMethod) throw new Error('Invalid method');
         method = normalizedMethod;
 
-        if (transport === 'http') return this.requestHttp(path, method, data);
-        if (transport === 'ws') return this.requestWs(path, method, data, call);
+        if (transport === 'http') return this.requestHttp(path, method, data, validateStatus);
+        if (transport === 'ws') return this.requestWs(path, method, data, call, validateStatus);
 
-        if (this.connected) return this.requestWs(path, method, data, call);
-        return this.requestHttp(path, method, data);
+        if (this.connected) return this.requestWs(path, method, data, call, validateStatus);
+        return this.requestHttp(path, method, data, validateStatus);
     }
 
-    private requestHttp(path: string, method: string, data: any) {
+    private requestHttp(path: string, method: string, data: any, validateStatus?: ValidateStatus) {
         const httpMethod = HTTPTranslation[method as Method];
         const url = path.startsWith('/') ? path : `/${path}`;
 
@@ -196,14 +214,15 @@ export class REPClient {
 
             method: httpMethod,
             data: JSON.stringify(data),
+            ...(validateStatus ? {validateStatus} : {}),
         })
-            .then((response) => response.data.data)
+            .then((response) => response.data?.data)
             .catch((error) => {
                 const body = error?.response?.data;
                 throw new WebError(body?.error ?? 'Internal Server Error', error?.response?.status ?? 500);
             });
     }
-    private async requestWs(path: string, method: string, data: any, call = true) {
+    private async requestWs(path: string, method: string, data: any, call = true, validateStatus?: ValidateStatus) {
         if (!this.connected) throw new Error('Not connected');
 
         let request;
@@ -218,7 +237,9 @@ export class REPClient {
             req: request,
         }));
 
-        if (call)
-            return await new Promise((resolve, reject) => this.requests.set(request, {resolve, reject}));
+        if (!call) return;
+
+        return new Promise((resolve, reject) =>
+            this.requests.set(request, {resolve, reject, validateStatus}));
     }
 }

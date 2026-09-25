@@ -58,6 +58,7 @@ should;
             expect(e.type).to.equal('Disconnected');
         }
     }
+
 }
 
 @suite class ClientRequestMethodAliasUnitTests {
@@ -102,7 +103,7 @@ should;
             return Promise.resolve();
         };
 
-        await this.client.request('/clients/123', 'POST', {}, 'ws', false);
+        await this.client.request('/clients/123', 'POST', {}, {transport: 'ws', call: false});
         expect(calledWith).to.equal('ACTION');
     }
 }
@@ -145,7 +146,7 @@ should;
         };
         this.client['connected_'] = true;
 
-        await this.client.request('/clients/123', 'GET', {}, 'http');
+        await this.client.request('/clients/123', 'GET', {}, {transport: 'http'});
         expect(usedHttp).to.be.true;
     }
 
@@ -154,7 +155,7 @@ should;
         this.client['socket'] = socket as any;
         this.client['connected_'] = true;
 
-        const result = await this.client.request('/clients/123', 'GET', {}, 'ws', false);
+        const result = await this.client.request('/clients/123', 'GET', {}, {transport: 'ws', call: false});
         expect(result).to.be.undefined;
         expect(JSON.parse(socket.sent[0]).req).to.be.undefined;
         expect(this.client['requests'].size).to.equal(0);
@@ -268,6 +269,7 @@ should;
                 expect(e.status).to.equal(500);
             });
     }
+
 }
 
 @suite class ClientOnMessageUnitTests {

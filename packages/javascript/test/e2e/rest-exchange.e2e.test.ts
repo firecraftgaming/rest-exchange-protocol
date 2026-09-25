@@ -146,7 +146,7 @@ async function startServer() {
         this.client.connect();
         await waitFor(() => this.client['connected_']);
 
-        const result = await this.client.request('/ping', 'GET', {}, 'ws', false);
+        const result = await this.client.request('/ping', 'GET', {}, {transport: 'ws', call: false});
         expect(result).to.be.undefined;
 
         await waitFor(() => handlerCalled);
